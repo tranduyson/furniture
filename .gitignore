@@ -1,0 +1,98 @@
+# ======================
+# NODE MODULES
+# ======================
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# ======================
+# ENV FILES (BẢO MẬT)
+# ======================
+# .env
+# .env.local
+# .env.development.local
+# .env.test.local
+# .env.production.local
+
+# ======================
+# BUILD / OUTPUT
+# ======================
+dist/
+build/
+.next/
+out/
+
+# ======================
+# LOG FILES
+# ======================
+logs
+*.log
+
+# ======================
+# CACHE
+# ======================
+.cache/
+.parcel-cache/
+
+# ======================
+# OS FILES
+# ======================
+.DS_Store
+Thumbs.db
+
+# ======================
+# IDE / EDITOR
+# ======================
+.vscode/
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+
+# ======================
+# TEST COVERAGE
+# ======================
+coverage/
+
+# ======================
+# TYPESCRIPT
+# ======================
+*.tsbuildinfo
+
+# ======================
+# NEXTJS
+# ======================
+.next/
+out/
+
+# ======================
+# EXPRESS / TEMP
+# ======================
+tmp/
+temp/
+
+# ======================
+# UPLOADS (NẾU CÓ)
+# ======================
+# uploads/
+# public/uploads/
+
+# ======================
+# DATABASE (LOCAL)
+# ======================
+*.sqlite
+*.db
+
+# ======================
+# DOCKER (OPTIONAL)
+# ======================
+docker-compose.override.yml
+
+# ======================
+# MISC
+# ======================
+*.pem
+*.key

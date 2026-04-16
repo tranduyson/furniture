@@ -16,8 +16,6 @@ const { verifyToken } = require('../middlewares/auth.middleware');
  *   post:
  *     summary: Đặt hàng (Checkout) từ giỏ hàng hiện tại
  *     tags: [Orders]
- *     security:
- *       - bearerAuth: []
  *     requestBody:
  *       required: true
  *       content:
@@ -46,15 +44,16 @@ const { verifyToken } = require('../middlewares/auth.middleware');
  *               note:
  *                 type: string
  *                 example: Giao hàng buổi sáng
+ *               items:
+ *                 type: array
+ *                 description: Danh sách sản phẩm (dành cho guest checkout)
  *     responses:
  *       201:
  *         description: Đặt hàng thành công (kèm order_id và order_code)
  *       400:
  *         description: Giỏ hàng trống hoặc thiếu thông tin giao hàng
- *       401:
- *         description: Chưa đăng nhập
  */
-router.post('/checkout', verifyToken, orderController.checkout);
+router.post('/checkout', orderController.checkout);
 
 /**
  * @swagger

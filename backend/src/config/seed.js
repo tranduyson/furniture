@@ -192,6 +192,49 @@ const seed = async () => {
       console.log('+ Đã thêm Mã giảm giá mẫu');
     }
 
+    // 7. Đơn hàng mẫu (Sample Orders)
+    const [orders] = await connection.execute('SELECT COUNT(*) as count FROM orders');
+    if (orders[0].count === 0) {
+      const [[userRow]] = await connection.execute("SELECT id FROM users WHERE email = 'user@gmail.com' LIMIT 1");
+      const userId = userRow?.id || null;
+      const [[prodRow]] = await connection.execute("SELECT id FROM products LIMIT 1");
+      const productId = prodRow?.id || null;
+
+      // Create some sample orders
+      const orderStatuses = ['pending', 'confirmed', 'shipping', 'delivered'];
+      for (let i = 0; i < 5; i++) {
+        const orderCode = `ORD${Date.now()}${i}`;
+        const status = orderStatuses[Math.floor(Math.random() * orderStatuses.length)];
+        const totalAmount = 5000000 + Math.random() * 10000000;
+
+        await connection.execute(`
+          INSERT INTO orders (user_id, order_code, recipient_name, recipient_phone, shipping_address, total_amount, status, payment_method, created_at) VALUES
+          (?, ?, ?, ?, ?, ?, ?, ?, NOW())
+        `, [
+          userId,
+          orderCode,
+          'Khách hàng ' + (i + 1),
+          '0912345678',
+          'Hà Nội',
+          Math.round(totalAmount),
+          status,
+          i % 2 === 0 ? 'COD' : 'BANK_TRANSFER'
+        ]);
+
+        const [orderRows] = await connection.execute(`SELECT id FROM orders WHERE order_code = ? LIMIT 1`, [orderCode]);
+        const orderId = orderRows[0]?.id;
+
+        // Add order items
+        if (orderId && productId) {
+          await connection.execute(`
+            INSERT INTO order_items (order_id, product_id, variant_id, quantity, unit_price) VALUES
+            (?, ?, ?, ?, ?)
+          `, [orderId, productId, null, Math.floor(1 + Math.random() * 3), Math.round(totalAmount / 2)]);
+        }
+      }
+      console.log('+ Đã thêm 5 đơn hàng mẫu');
+    }
+
     await connection.commit();
     console.log('--- Hoàn tất đổ dữ liệu mẫu thành công! ---');
 

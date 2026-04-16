@@ -65,16 +65,17 @@ const getAllProductsAdmin = async ({ page = 1, limit = 10, search = '', category
   }
 
   const where = conditions.length ? `WHERE ${conditions.join(' AND ')}` : '';
-  const countQuery = `SELECT COUNT(*) as total FROM products p LEFT JOIN categories c ON p.category_id = c.id ${where}`;
+  const countQuery = `SELECT COUNT(*) as total FROM products p LEFT JOIN product_categories c ON p.category_id = c.id ${where}`;
   const [countRows] = await pool.execute(countQuery, params);
   const total = countRows[0].total;
 
   const dataQuery = `
-    SELECT p.id, p.name, p.slug, p.base_price, p.discount_pct, p.stock_qty, p.is_featured, p.is_active,
+    SELECT p.id, p.name, p.slug, p.base_price, p.discount_pct, p.is_featured, p.is_active,
            c.name as category_name,
+           COALESCE((SELECT SUM(pv.stock_qty) FROM product_variants pv WHERE pv.product_id = p.id), 0) as stock_qty,
            (SELECT pi.image_url FROM product_images pi WHERE pi.product_id = p.id AND pi.is_primary = 1 LIMIT 1) as primary_image
     FROM products p
-    LEFT JOIN categories c ON p.category_id = c.id
+    LEFT JOIN product_categories c ON p.category_id = c.id
     ${where}
     ORDER BY p.created_at DESC
     LIMIT ${parseInt(limit)} OFFSET ${parseInt(offset)}
@@ -86,25 +87,28 @@ const getAllProductsAdmin = async ({ page = 1, limit = 10, search = '', category
 
 const getProductAdminById = async (id) => {
   const [rows] = await pool.execute(
-    `SELECT p.*, c.name as category_name FROM products p LEFT JOIN categories c ON p.category_id = c.id WHERE p.id = ?`,
+    `SELECT p.*, c.name as category_name FROM products p LEFT JOIN product_categories c ON p.category_id = c.id WHERE p.id = ?`,
     [id]
   );
-  return rows[0];
+  if (!rows[0]) return null;
+  const [variants] = await pool.execute(`SELECT * FROM product_variants WHERE product_id = ?`, [id]);
+  const [images] = await pool.execute(`SELECT * FROM product_images WHERE product_id = ? ORDER BY is_primary DESC`, [id]);
+  return { ...rows[0], variants, images };
 };
 
-const createProduct = async ({ name, slug, description, base_price, discount_pct, stock_qty, category_id, is_featured, is_active }) => {
+const createProduct = async ({ name, slug, description, base_price, discount_pct, category_id, is_featured, is_active }) => {
   const [result] = await pool.execute(
-    `INSERT INTO products (name, slug, description, base_price, discount_pct, stock_qty, category_id, is_featured, is_active)
+    `INSERT INTO products (name, slug, sku_base, description, base_price, discount_pct, category_id, is_featured, is_active)
      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-    [name, slug, description || '', base_price, discount_pct || 0, stock_qty || 0, category_id || null, is_featured || 0, is_active ?? 1]
+    [name, slug, slug, description || '', base_price, discount_pct || 0, category_id || null, is_featured || 0, is_active ?? 1]
   );
   return result.insertId;
 };
 
-const updateProduct = async (id, { name, slug, description, base_price, discount_pct, stock_qty, category_id, is_featured, is_active }) => {
+const updateProduct = async (id, { name, slug, description, base_price, discount_pct, category_id, is_featured, is_active }) => {
   const [result] = await pool.execute(
-    `UPDATE products SET name=?, slug=?, description=?, base_price=?, discount_pct=?, stock_qty=?, category_id=?, is_featured=?, is_active=? WHERE id=?`,
-    [name, slug, description || '', base_price, discount_pct || 0, stock_qty || 0, category_id || null, is_featured || 0, is_active ?? 1, id]
+    `UPDATE products SET name=?, slug=?, description=?, base_price=?, discount_pct=?, category_id=?, is_featured=?, is_active=? WHERE id=?`,
+    [name, slug, description || '', base_price, discount_pct || 0, category_id || null, is_featured || 0, is_active ?? 1, id]
   );
   return result.affectedRows;
 };
@@ -120,7 +124,6 @@ const getAllOrdersAdmin = async ({ page = 1, limit = 10, status = '', search = '
   const offset = (page - 1) * limit;
   const conditions = [];
   const params = [];
-
   if (search) {
     conditions.push(`(o.order_code LIKE ? OR u.full_name LIKE ? OR o.recipient_name LIKE ?)`);
     const s = `%${search}%`;
@@ -139,7 +142,7 @@ const getAllOrdersAdmin = async ({ page = 1, limit = 10, status = '', search = '
 
   const dataQuery = `
     SELECT o.id, o.order_code, o.recipient_name, o.recipient_phone, o.shipping_address,
-           o.total_amount, o.status, o.payment_method, o.created_at,
+           o.total_amount, o.order_status, o.payment_method, o.created_at,
            u.full_name as user_name, u.email as user_email
     FROM orders o
     LEFT JOIN users u ON o.user_id = u.id
@@ -175,18 +178,27 @@ const updateOrderStatus = async (id, status) => {
 // ======================== STATS ========================
 
 const getDashboardStats = async () => {
-  const [[{ total_orders }]] = await pool.execute(`SELECT COUNT(*) as total_orders FROM orders`);
-  const [[{ total_users }]] = await pool.execute(`SELECT COUNT(*) as total_users FROM users WHERE role = 'customer'`);
-  const [[{ total_products }]] = await pool.execute(`SELECT COUNT(*) as total_products FROM products`);
-  const [[{ total_revenue }]] = await pool.execute(`SELECT COALESCE(SUM(total_amount), 0) as total_revenue FROM orders WHERE status != 'cancelled'`);
-  const [[{ pending_orders }]] = await pool.execute(`SELECT COUNT(*) as pending_orders FROM orders WHERE status = 'pending'`);
+  const [rows1] = await pool.execute(`SELECT COUNT(*) as total_orders FROM orders`);
+  const { total_orders } = rows1[0];
+  
+  const [rows2] = await pool.execute(`SELECT COUNT(*) as total_users FROM users WHERE role = 'customer'`);
+  const { total_users } = rows2[0];
+  
+  const [rows3] = await pool.execute(`SELECT COUNT(*) as total_products FROM products`);
+  const { total_products } = rows3[0];
+  
+  const [rows4] = await pool.execute(`SELECT COALESCE(SUM(total_amount), 0) as total_revenue FROM orders WHERE status != 'cancelled'`);
+  const { total_revenue } = rows4[0];
+  
+  const [rows5] = await pool.execute(`SELECT COUNT(*) as pending_orders FROM orders WHERE status = 'pending'`);
+  const { pending_orders } = rows5[0];
 
-  const [recentOrders] = await pool.execute(`
+  const [recent_orders] = await pool.execute(`
     SELECT o.id, o.order_code, o.recipient_name, o.total_amount, o.status, o.created_at
     FROM orders o ORDER BY o.created_at DESC LIMIT 5
   `);
 
-  return { total_orders, total_users, total_products, total_revenue, pending_orders, recent_orders: recentOrders };
+  return { total_orders, total_users, total_products, total_revenue, pending_orders, recent_orders };
 };
 
 module.exports = {

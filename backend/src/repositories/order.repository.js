@@ -1,10 +1,12 @@
 const pool = require('../config/db');
 
 const createOrderWithTransaction = async (orderData, orderItems, userId, cartId) => {
+  console.log('[ORDER.REPOSITORY] createOrderWithTransaction - orderData:', orderData, 'items:', orderItems.length);
   const connection = await pool.getConnection();
   
   try {
     await connection.beginTransaction();
+    console.log('[ORDER.REPOSITORY] Transaction started');
 
     // 1. Insert Order
     const [orderResult] = await connection.execute(`
@@ -30,6 +32,7 @@ const createOrderWithTransaction = async (orderData, orderItems, userId, cartId)
     ]);
 
     const orderId = orderResult.insertId;
+    console.log('[ORDER.REPOSITORY] Order inserted with ID:', orderId);
 
     // 2. Insert Order Items
     const itemQuery = `INSERT INTO order_items (order_id, variant_id, product_name, variant_sku, variant_attrs, unit_price, quantity, line_total) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`;
@@ -45,9 +48,12 @@ const createOrderWithTransaction = async (orderData, orderItems, userId, cartId)
         item.line_total
       ]);
       
-      // Reduce Stock Quantity
-      await connection.execute(`UPDATE product_variants SET stock_qty = stock_qty - ? WHERE id = ?`, [item.quantity, item.variant_id]);
+      // Reduce Stock Quantity (only if variant_id exists)
+      if (item.variant_id) {
+        await connection.execute(`UPDATE product_variants SET stock_qty = stock_qty - ? WHERE id = ?`, [item.quantity, item.variant_id]);
+      }
     }
+    console.log('[ORDER.REPOSITORY] Order items inserted');
 
     // 3. Create Status History
     await connection.execute(`
@@ -60,14 +66,18 @@ const createOrderWithTransaction = async (orderData, orderItems, userId, cartId)
       await connection.execute(`UPDATE coupon_codes SET used_count = used_count + 1 WHERE id = ?`, [orderData.coupon_id]);
     }
 
-    // 5. Clear Cart Items
-    await connection.execute(`DELETE FROM cart_items WHERE cart_id = ?`, [cartId]);
-    await connection.execute(`UPDATE carts SET coupon_id = NULL WHERE id = ?`, [cartId]);
+    // 5. Clear Cart Items (only if user is authenticated)
+    if (cartId) {
+      await connection.execute(`DELETE FROM cart_items WHERE cart_id = ?`, [cartId]);
+      await connection.execute(`UPDATE carts SET coupon_id = NULL WHERE id = ?`, [cartId]);
+    }
 
     // Commit Transaction
     await connection.commit();
+    console.log('[ORDER.REPOSITORY] Transaction committed successfully');
     return orderId;
   } catch (error) {
+    console.error('[ORDER.REPOSITORY] Transaction error:', error);
     await connection.rollback();
     throw error;
   } finally {
@@ -76,7 +86,9 @@ const createOrderWithTransaction = async (orderData, orderItems, userId, cartId)
 };
 
 const findOrdersByUserId = async (userId) => {
+  console.log('[ORDER.REPOSITORY] findOrdersByUserId - querying for userId:', userId);
   const [rows] = await pool.execute(`SELECT * FROM orders WHERE user_id = ? ORDER BY created_at DESC`, [userId]);
+  console.log('[ORDER.REPOSITORY] findOrdersByUserId - found rows:', rows.length);
   return rows;
 };
 

@@ -187,14 +187,14 @@ const getDashboardStats = async () => {
   const [rows3] = await pool.execute(`SELECT COUNT(*) as total_products FROM products`);
   const { total_products } = rows3[0];
   
-  const [rows4] = await pool.execute(`SELECT COALESCE(SUM(total_amount), 0) as total_revenue FROM orders WHERE status != 'cancelled'`);
+  const [rows4] = await pool.execute(`SELECT COALESCE(SUM(total_amount), 0) as total_revenue FROM orders WHERE order_status != 'cancelled'`);
   const { total_revenue } = rows4[0];
   
-  const [rows5] = await pool.execute(`SELECT COUNT(*) as pending_orders FROM orders WHERE status = 'pending'`);
+  const [rows5] = await pool.execute(`SELECT COUNT(*) as pending_orders FROM orders WHERE order_status = 'pending'`);
   const { pending_orders } = rows5[0];
 
   const [recent_orders] = await pool.execute(`
-    SELECT o.id, o.order_code, o.recipient_name, o.total_amount, o.status, o.created_at
+    SELECT o.id, o.order_code, o.recipient_name, o.total_amount, o.order_status as status, o.created_at
     FROM orders o ORDER BY o.created_at DESC LIMIT 5
   `);
 

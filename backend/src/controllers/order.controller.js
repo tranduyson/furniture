@@ -33,7 +33,6 @@ const getOrderHistory = async (req, res, next) => {
 
 const getOrderDetails = async (req, res, next) => {
   try {
-    debugger
     const userId = req.user.id;
     const { id } = req.params;
     const details = await orderService.getOrderDetails(userId, id);

@@ -1,41 +1,98 @@
-# See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
-
-# dependencies
-/node_modules
-/.pnp
-.pnp.*
-.yarn/*
-!.yarn/patches
-!.yarn/plugins
-!.yarn/releases
-!.yarn/versions
-
-# testing
-/coverage
-
-# next.js
-/.next/
-/out/
-
-# production
-/build
-
-# misc
-.DS_Store
-*.pem
-
-# debug
+# ======================
+# NODE MODULES
+# ======================
+node_modules/
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
-.pnpm-debug.log*
+pnpm-debug.log*
 
-# env files (can opt-in for committing if needed)
-.env*
+# ======================
+# ENV FILES (BẢO MẬT)
+# ======================
+# .env
+# .env.local
+# .env.development.local
+# .env.test.local
+# .env.production.local
 
-# vercel
-.vercel
+# ======================
+# BUILD / OUTPUT
+# ======================
+dist/
+build/
+.next/
+out/
 
-# typescript
+# ======================
+# LOG FILES
+# ======================
+logs
+*.log
+
+# ======================
+# CACHE
+# ======================
+.cache/
+.parcel-cache/
+
+# ======================
+# OS FILES
+# ======================
+.DS_Store
+Thumbs.db
+
+# ======================
+# IDE / EDITOR
+# ======================
+.vscode/
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+
+# ======================
+# TEST COVERAGE
+# ======================
+coverage/
+
+# ======================
+# TYPESCRIPT
+# ======================
 *.tsbuildinfo
-next-env.d.ts
+
+# ======================
+# NEXTJS
+# ======================
+.next/
+out/
+
+# ======================
+# EXPRESS / TEMP
+# ======================
+tmp/
+temp/
+
+# ======================
+# UPLOADS (NẾU CÓ)
+# ======================
+# uploads/
+# public/uploads/
+
+# ======================
+# DATABASE (LOCAL)
+# ======================
+*.sqlite
+*.db
+
+# ======================
+# DOCKER (OPTIONAL)
+# ======================
+docker-compose.override.yml
+
+# ======================
+# MISC
+# ======================
+*.pem
+*.key

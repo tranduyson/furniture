@@ -41,33 +41,72 @@ export default function AdminUsersPage() {
     const token = localStorage.getItem('accessToken');
     setSavingId(editUser.id);
     
-    const payload = { 
-      full_name: editUser.full_name, 
-      email: editUser.email, 
-      phone: editUser.phone, 
-      role: editUser.role, 
-      is_active: editUser.is_active 
-    };
-    
-    if (editUser.password) {
-      payload.password = editUser.password;
+    try {
+      // Update user info
+      const payload = { 
+        full_name: editUser.full_name, 
+        email: editUser.email, 
+        phone: editUser.phone, 
+        role: editUser.role, 
+        is_active: editUser.is_active 
+      };
+      
+      const res1 = await fetch(`${API}/api/admin/users/${editUser.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify(payload)
+      });
+      
+      if (!res1.ok) throw new Error('Cập nhật người dùng thất bại');
+      
+      // Update password if provided
+      if (editUser.password && editUser.password.trim()) {
+        const res2 = await fetch(`${API}/api/admin/users/${editUser.id}/password`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+          body: JSON.stringify({ newPassword: editUser.password })
+        });
+        
+        if (!res2.ok) {
+          const err = await res2.json();
+          alert(err.message || 'Đổi mật khẩu thất bại');
+          setSavingId(null);
+          return;
+        }
+      }
+      
+      alert('Cập nhật thành công!');
+    } catch (e) {
+      alert('Lỗi: ' + e.message);
+    } finally {
+      setSavingId(null);
+      setEditUser(null);
+      fetchUsers();
     }
-    
-    await fetch(`${API}/api/admin/users/${editUser.id}`, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-      body: JSON.stringify(payload)
-    });
-    setSavingId(null);
-    setEditUser(null);
-    fetchUsers();
   };
 
   const handleDelete = async (id) => {
     if (!confirm('Bạn có chắc muốn xóa người dùng này?')) return;
     const token = localStorage.getItem('accessToken');
-    await fetch(`${API}/api/admin/users/${id}`, { method: 'DELETE', headers: { Authorization: `Bearer ${token}` } });
-    fetchUsers();
+    
+    try {
+      const res = await fetch(`${API}/api/admin/users/${id}`, { 
+        method: 'DELETE', 
+        headers: { Authorization: `Bearer ${token}` } 
+      });
+      
+      const data = await res.json();
+      
+      if (!res.ok) {
+        alert(data.message || 'Xóa người dùng thất bại');
+        return;
+      }
+      
+      alert('Xóa người dùng thành công!');
+      fetchUsers();
+    } catch (e) {
+      alert('Lỗi: ' + e.message);
+    }
   };
 
   return (

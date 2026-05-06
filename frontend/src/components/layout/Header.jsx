@@ -186,7 +186,13 @@ export default function Header() {
                     <div className="px-4 py-3 border-b border-gray-100">
                       <p className="text-sm font-semibold text-gray-900">{user.full_name}</p>
                       <p className="text-xs text-gray-500">{user.email}</p>
+                      {user.role === 'admin' && <span className="text-xs bg-red-100 text-red-700 px-2 py-0.5 rounded mt-1 inline-block">Admin</span>}
                     </div>
+                    {user.role === 'admin' && (
+                      <Link href="/admin" className="block px-4 py-2 text-sm text-white bg-red-600 hover:bg-red-700 font-semibold">
+                        🔧 Quản trị Admin
+                      </Link>
+                    )}
                     <Link href="/orders" className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-red-600">
                       Đơn hàng của tôi
                     </Link>

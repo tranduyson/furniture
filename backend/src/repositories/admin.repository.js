@@ -1,4 +1,5 @@
 const pool = require('../config/db');
+const { AppError } = require('../middlewares/errorHandler.middleware');
 
 // ======================== USERS ========================
 
@@ -44,7 +45,21 @@ const updateUser = async (id, { full_name, email, phone, role, is_active }) => {
 };
 
 const deleteUser = async (id) => {
+  // Check if user has orders
+  const [orders] = await pool.execute(`SELECT COUNT(*) as count FROM orders WHERE user_id = ?`, [id]);
+  if (orders[0].count > 0) {
+    throw new AppError('Không thể xóa người dùng có đơn hàng', 400);
+  }
+  
   const [result] = await pool.execute(`DELETE FROM users WHERE id = ?`, [id]);
+  return result.affectedRows;
+};
+
+const updateUserPassword = async (id, passwordHash) => {
+  const [result] = await pool.execute(
+    `UPDATE users SET password_hash=? WHERE id=?`,
+    [passwordHash, id]
+  );
   return result.affectedRows;
 };
 
@@ -163,7 +178,7 @@ const getOrderAdminById = async (id) => {
   if (!orderRows[0]) return null;
 
   const [itemRows] = await pool.execute(
-    `SELECT oi.*, p.name as product_name FROM order_items oi LEFT JOIN products p ON oi.product_id = p.id WHERE oi.order_id = ?`,
+    `SELECT oi.*, p.name as product_name FROM order_items oi LEFT JOIN products p ON oi.variant_id = p.id WHERE oi.order_id = ?`,
     [id]
   );
 
@@ -171,7 +186,25 @@ const getOrderAdminById = async (id) => {
 };
 
 const updateOrderStatus = async (id, status) => {
-  const [result] = await pool.execute(`UPDATE orders SET status = ? WHERE id = ?`, [status, id]);
+  const [result] = await pool.execute(`UPDATE orders SET order_status = ? WHERE id = ?`, [status, id]);
+  return result.affectedRows;
+};
+
+const deleteOrder = async (id) => {
+  // First check if order exists and get its status
+  const [orderRows] = await pool.execute(`SELECT order_status FROM orders WHERE id = ?`, [id]);
+  if (!orderRows[0]) return null;
+  
+  // Only allow deletion if status is 'pending'
+  if (orderRows[0].order_status !== 'pending') {
+    throw new Error(`Cannot delete order with status: ${orderRows[0].order_status}`);
+  }
+
+  // Delete order items first (due to foreign key constraint)
+  await pool.execute(`DELETE FROM order_items WHERE order_id = ?`, [id]);
+  
+  // Delete the order
+  const [result] = await pool.execute(`DELETE FROM orders WHERE id = ?`, [id]);
   return result.affectedRows;
 };
 
@@ -202,8 +235,8 @@ const getDashboardStats = async () => {
 };
 
 module.exports = {
-  getAllUsers, getUserById, updateUser, deleteUser,
+  getAllUsers, getUserById, updateUser, deleteUser, updateUserPassword,
   getAllProductsAdmin, getProductAdminById, createProduct, updateProduct, deleteProduct,
-  getAllOrdersAdmin, getOrderAdminById, updateOrderStatus,
+  getAllOrdersAdmin, getOrderAdminById, updateOrderStatus, deleteOrder,
   getDashboardStats
 };

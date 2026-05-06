@@ -1,4 +1,5 @@
 const adminRepo = require('../repositories/admin.repository');
+const bcrypt = require('bcrypt');
 const { AppError } = require('../middlewares/errorHandler.middleware');
 
 // ======================== DASHBOARD ========================
@@ -18,6 +19,22 @@ const updateUser = async (id, body) => {
 };
 const deleteUser = async (id) => {
   const rows = await adminRepo.deleteUser(id);
+  if (!rows) throw new AppError('Không tìm thấy người dùng', 404);
+  return { success: true };
+};
+
+const updateUserPassword = async (id, newPassword) => {
+  // Validate password
+  if (!newPassword || newPassword.trim().length < 6) {
+    throw new AppError('Mật khẩu phải có ít nhất 6 ký tự', 400);
+  }
+  
+  // Hash new password
+  const saltRounds = 10;
+  const passwordHash = await bcrypt.hash(newPassword, saltRounds);
+  
+  // Update in database
+  const rows = await adminRepo.updateUserPassword(id, passwordHash);
   if (!rows) throw new AppError('Không tìm thấy người dùng', 404);
   return { success: true };
 };
@@ -59,9 +76,22 @@ const updateOrderStatus = async (id, status) => {
   return { success: true };
 };
 
+const deleteOrder = async (id) => {
+  try {
+    const rows = await adminRepo.deleteOrder(id);
+    if (!rows) throw new AppError('Không tìm thấy đơn hàng', 404);
+    return { success: true };
+  } catch (error) {
+    if (error.message.startsWith('Cannot delete')) {
+      throw new AppError('Chỉ có thể xóa đơn hàng ở trạng thái "Chờ duyệt"', 400);
+    }
+    throw error;
+  }
+};
+
 module.exports = {
   getDashboardStats,
-  getAllUsers, getUserById, updateUser, deleteUser,
+  getAllUsers, getUserById, updateUser, deleteUser, updateUserPassword,
   getAllProducts, getProductById, createProduct, updateProduct, deleteProduct,
-  getAllOrders, getOrderById, updateOrderStatus
+  getAllOrders, getOrderById, updateOrderStatus, deleteOrder
 };

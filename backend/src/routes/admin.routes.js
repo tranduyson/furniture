@@ -14,6 +14,7 @@ router.get('/dashboard', adminController.getDashboardStats);
 router.get('/users', adminController.getAllUsers);
 router.get('/users/:id', adminController.getUserById);
 router.put('/users/:id', adminController.updateUser);
+router.patch('/users/:id/password', adminController.resetUserPassword);
 router.delete('/users/:id', adminController.deleteUser);
 
 // Products
@@ -27,5 +28,6 @@ router.delete('/products/:id', adminController.deleteProduct);
 router.get('/orders', adminController.getAllOrders);
 router.get('/orders/:id', adminController.getOrderById);
 router.patch('/orders/:id/status', adminController.updateOrderStatus);
+router.delete('/orders/:id', adminController.deleteOrder);
 
 module.exports = router;

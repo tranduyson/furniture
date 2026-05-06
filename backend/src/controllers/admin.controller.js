@@ -34,6 +34,14 @@ const deleteUser = async (req, res, next) => {
   } catch (e) { next(e); }
 };
 
+const resetUserPassword = async (req, res, next) => {
+  try {
+    const { newPassword } = req.body;
+    const data = await adminService.updateUserPassword(req.params.id, newPassword);
+    res.json({ success: true, data });
+  } catch (e) { next(e); }
+};
+
 // Products
 const getAllProducts = async (req, res, next) => {
   try {
@@ -87,9 +95,16 @@ const updateOrderStatus = async (req, res, next) => {
   } catch (e) { next(e); }
 };
 
+const deleteOrder = async (req, res, next) => {
+  try {
+    const data = await adminService.deleteOrder(req.params.id);
+    res.json({ success: true, data });
+  } catch (e) { next(e); }
+};
+
 module.exports = {
   getDashboardStats,
-  getAllUsers, getUserById, updateUser, deleteUser,
+  getAllUsers, getUserById, updateUser, deleteUser, resetUserPassword,
   getAllProducts, getProductById, createProduct, updateProduct, deleteProduct,
-  getAllOrders, getOrderById, updateOrderStatus
+  getAllOrders, getOrderById, updateOrderStatus, deleteOrder
 };

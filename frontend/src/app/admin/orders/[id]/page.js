@@ -35,6 +35,7 @@ export default function OrderDetailPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [updatingStatus, setUpdatingStatus] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
   useEffect(() => {
     const fetchOrder = async () => {
@@ -77,7 +78,7 @@ export default function OrderDetailPage() {
       });
 
       if (res.ok) {
-        setOrder({ ...order, status: newStatus });
+        setOrder({ ...order, order_status: newStatus });
       } else {
         alert('Cập nhật trạng thái thất bại');
       }
@@ -85,6 +86,50 @@ export default function OrderDetailPage() {
       alert('Lỗi cập nhật trạng thái');
     } finally {
       setUpdatingStatus(false);
+    }
+  };
+
+  const deleteOrder = async () => {
+    if (!order) return;
+
+    // Kiểm tra trạng thái - chỉ cho phép xóa khi trạng thái là "pending"
+    if (order.order_status !== 'pending') {
+      alert('⚠️ Chỉ có thể xóa đơn hàng ở trạng thái "Chờ duyệt".\n\nĐơn hàng hiện tại đang ở trạng thái: ' + 
+        ({
+          confirmed: 'Đã xác nhận',
+          shipping: 'Vận chuyển',
+          delivered: 'Hoàn thành',
+          cancelled: 'Đã hủy'
+        }[order.order_status] || order.order_status));
+      return;
+    }
+
+    // Xác nhận trước khi xóa
+    if (!confirm('Bạn có chắc chắn muốn xóa đơn hàng này?\n\nThao tác này không thể hoàn tác.')) {
+      return;
+    }
+
+    setDeleting(true);
+    try {
+      const token = localStorage.getItem('accessToken');
+      const res = await fetch(`${API}/api/admin/orders/${order.id}`, {
+        method: 'DELETE',
+        headers: {
+          Authorization: `Bearer ${token}`
+        }
+      });
+
+      if (res.ok) {
+        alert('✓ Xóa đơn hàng thành công');
+        router.push('/admin/orders');
+      } else {
+        const errorData = await res.json();
+        alert('❌ Xóa thất bại: ' + (errorData.message || 'Lỗi server'));
+      }
+    } catch (err) {
+      alert('❌ Lỗi xóa đơn hàng: ' + err.message);
+    } finally {
+      setDeleting(false);
     }
   };
 
@@ -129,7 +174,7 @@ export default function OrderDetailPage() {
               {new Date(order.created_at).toLocaleString('vi-VN')}
             </p>
           </div>
-          <div>{statusBadge(order.status)}</div>
+          <div>{statusBadge(order.order_status)}</div>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -225,7 +270,7 @@ export default function OrderDetailPage() {
                 <div className="space-y-3">
                   <div className="flex justify-between text-sm">
                     <span className="text-gray-600">Trạng thái</span>
-                    <span className="font-semibold text-gray-900">{statusBadge(order.status)}</span>
+                    <span className="font-semibold text-gray-900">{statusBadge(order.order_status)}</span>
                   </div>
                   {order.tracking_number && (
                     <div className="flex justify-between text-sm">
@@ -276,11 +321,11 @@ export default function OrderDetailPage() {
                 {['pending', 'confirmed', 'shipping', 'delivered', 'cancelled'].map(status => (
                   <button
                     key={status}
-                    disabled={order.status === status || updatingStatus}
+                    disabled={order.order_status === status || updatingStatus}
                     onClick={() => updateStatus(status)}
                     className={`w-full px-4 py-2.5 rounded-lg text-sm font-bold border transition
                       ${
-                        order.status === status
+                        order.order_status === status
                           ? 'bg-gray-800 text-white border-gray-800'
                           : 'border-gray-200 text-gray-600 hover:border-amber-400 hover:text-amber-600 hover:bg-amber-50'
                       }
@@ -308,8 +353,19 @@ export default function OrderDetailPage() {
                 <button className="w-full px-4 py-2.5 rounded-lg border border-gray-200 text-sm font-bold text-gray-600 hover:bg-gray-50 transition">
                   🖨️ In hóa đơn
                 </button>
-                <button className="w-full px-4 py-2.5 rounded-lg border border-red-200 text-sm font-bold text-red-600 hover:bg-red-50 transition">
-                  ❌ Xóa đơn hàng
+                <button
+                  onClick={deleteOrder}
+                  disabled={deleting || order.order_status !== 'pending'}
+                  className={`w-full px-4 py-2.5 rounded-lg border text-sm font-bold transition
+                    ${
+                      order.order_status !== 'pending'
+                        ? 'border-gray-200 text-gray-400 cursor-not-allowed bg-gray-50'
+                        : 'border-red-200 text-red-600 hover:bg-red-50'
+                    }
+                    ${deleting ? 'opacity-50 cursor-not-allowed' : ''}`}
+                  title={order.order_status !== 'pending' ? 'Chỉ có thể xóa đơn ở trạng thái Chờ duyệt' : ''}
+                >
+                  {deleting ? '⏳ Đang xóa...' : '❌ Xóa đơn hàng'}
                 </button>
               </div>
             </div>

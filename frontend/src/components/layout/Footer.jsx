@@ -67,11 +67,11 @@ export default function Footer() {
             <div className="space-y-4 text-sm text-gray-400">
               <div>
                 <p className="text-gray-300 font-semibold mb-1">📞 Hotline</p>
-                <p className="hover:text-white transition cursor-pointer">1900-1234</p>
+                <p className="hover:text-white transition cursor-pointer">0326330991</p>
               </div>
               <div>
                 <p className="text-gray-300 font-semibold mb-1">📧 Email</p>
-                <p className="hover:text-white transition cursor-pointer">support@sondt.vn</p>
+                <p className="hover:text-white transition cursor-pointer">sondt@sondt.vn</p>
               </div>
               <div>
                 <p className="text-gray-300 font-semibold mb-1">📍 Địa Chỉ</p>

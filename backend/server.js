@@ -26,12 +26,14 @@ const productRoutes = require('./src/routes/product.routes');
 const cartRoutes = require('./src/routes/cart.routes');
 const orderRoutes = require('./src/routes/order.routes');
 const adminRoutes = require('./src/routes/admin.routes');
+const promotionRoutes = require('./src/routes/promotion.routes');
 
 app.use('/api/auth', authRoutes);
 app.use('/api/products', productRoutes);
 app.use('/api/cart', cartRoutes);
 app.use('/api/orders', orderRoutes);
 app.use('/api/admin', adminRoutes);
+app.use('/api/promotions', promotionRoutes);
 
 // Swagger UI (chỉ mount nếu thư viện đã được cài)
 if (swaggerUi && swaggerSpec) {

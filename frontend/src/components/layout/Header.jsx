@@ -246,7 +246,7 @@ export default function Header() {
           <Link href="/products" className="text-gray-700 hover:text-red-600 font-medium text-sm transition">
             Sản phẩm
           </Link>
-          <Link href="/products?category=design" className="text-gray-700 hover:text-red-600 font-medium text-sm transition">
+          <Link href="/design" className="text-gray-700 hover:text-red-600 font-medium text-sm transition">
             Thiết kế - Thi công
           </Link>
           <Link href="/promotions" className="text-gray-700 hover:text-red-600 font-medium text-sm transition">

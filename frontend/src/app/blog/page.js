@@ -18,15 +18,16 @@ export default function BlogPage() {
   const ft = posts[0];
   return (
     <div className="flex flex-col bg-white">
-      {/* HERO */}
-      <section className="relative py-16 md:py-20 overflow-hidden" style={{background:'linear-gradient(135deg,#1a1a1a 0%,#2d2118 40%,#1a1a1a 100%)'}}>
-        <div className="absolute top-10 right-10 w-72 h-72 rounded-full bg-amber-700/10 blur-[100px]"/>
-        <div className="container mx-auto px-6 relative z-10 text-center">
-          <div className="flex items-center justify-center gap-3 mb-4">
-            <div className="w-8 h-[1px] bg-[#d4a843]"/><span className="text-[#d4a843] text-xs font-semibold uppercase tracking-[0.25em]">Blog & Tin tức</span><div className="w-8 h-[1px] bg-[#d4a843]"/>
+      {/* Intro Block */}
+      <section className="py-12 md:py-16 bg-white border-b border-gray-100">
+        <div className="container mx-auto px-6">
+          <div className="max-w-3xl mx-auto text-center">
+            <div className="flex items-center justify-center gap-3 mb-4">
+              <div className="w-8 h-[1px] bg-[#b8860b]"/><span className="text-[#b8860b] text-xs font-bold uppercase tracking-[0.25em] font-sans">CẢM HỨNG NỘI THẤT</span><div className="w-8 h-[1px] bg-[#b8860b]"/>
+            </div>
+            <h2 className="text-3xl md:text-4xl font-extrabold text-gray-900 mb-4 font-serif leading-tight">Blog & Tin Tức Mới Nhất</h2>
+            <p className="text-gray-500 text-base md:text-lg max-w-2xl mx-auto leading-relaxed">Cập nhật những xu hướng thiết kế nội thất mới nhất, ý tưởng trang trí không gian sống sáng tạo và tin tức sự kiện từ thương hiệu SONDT.</p>
           </div>
-          <h1 className="text-4xl md:text-5xl font-extrabold text-white mb-4">Cảm Hứng <span style={{color:'#d4a843'}}>Nội Thất</span></h1>
-          <p className="text-gray-400 text-base max-w-lg mx-auto">Cập nhật xu hướng, ý tưởng thiết kế và câu chuyện thương hiệu từ SONDT.</p>
         </div>
       </section>
 

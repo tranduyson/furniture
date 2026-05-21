@@ -37,26 +37,21 @@ export default function DesignPage() {
   const [activeProject, setActiveProject] = useState(0);
   return (
     <div className="flex flex-col bg-white">
-      {/* HERO */}
-      <section className="relative min-h-[500px] md:min-h-[560px] flex items-center overflow-hidden" style={{background:'linear-gradient(135deg,#1a1a1a 0%,#2d2118 40%,#1a1a1a 100%)'}}>
-        <div className="absolute inset-0 opacity-[0.04]" style={{backgroundImage:'radial-gradient(circle at 1px 1px, rgba(255,255,255,0.3) 1px, transparent 0)',backgroundSize:'40px 40px'}}/>
-        <div className="absolute top-20 right-20 w-80 h-80 rounded-full bg-amber-700/10 blur-[120px]"/>
-        <div className="absolute bottom-0 left-0 w-96 h-96 rounded-full bg-amber-900/8 blur-[100px]"/>
-        <div className="container mx-auto px-6 relative z-10">
-          <div className="max-w-3xl">
-            <div className="flex items-center gap-3 mb-6">
-              <div className="gold-line"/><span className="text-amber-400/80 text-xs font-semibold uppercase tracking-[0.25em]">Dịch vụ thiết kế & thi công</span>
+      {/* Intro Block */}
+      <section className="py-12 md:py-16 bg-white border-b border-gray-100">
+        <div className="container mx-auto px-6">
+          <div className="max-w-3xl mx-auto text-center">
+            <div className="flex items-center justify-center gap-3 mb-4">
+              <div className="w-8 h-[1px] bg-[#b8860b]"/><span className="text-[#b8860b] text-xs font-bold uppercase tracking-[0.25em] font-sans">THIẾT KẾ - THI CÔNG TRỌN GÓI</span><div className="w-8 h-[1px] bg-[#b8860b]"/>
             </div>
-            <h1 className="text-4xl md:text-5xl lg:text-6xl font-extrabold text-white mb-6 leading-[1.1]">
-              Biến Ý Tưởng Thành<br/><span style={{color:'#d4a843'}}>Không Gian Sống</span>
-            </h1>
-            <p className="text-gray-400 text-base md:text-lg max-w-xl mb-10 leading-relaxed">Dịch vụ thiết kế & thi công nội thất trọn gói từ SONDT — Từ bản vẽ 3D đến bàn giao chìa khóa trao tay.</p>
-            <div className="flex flex-wrap gap-4">
-              <a href="#packages" className="group relative overflow-hidden text-white font-semibold py-3.5 px-8 text-sm uppercase tracking-widest transition-all duration-500" style={{background:'linear-gradient(135deg,#b8860b,#d4a843)'}}>
-                <span className="relative z-10">Xem bảng giá</span>
+            <h2 className="text-3xl md:text-4xl font-extrabold text-gray-900 mb-4 font-serif leading-tight">Biến Ý Tưởng Thành Không Gian Sống</h2>
+            <p className="text-gray-500 text-base md:text-lg max-w-2xl mx-auto leading-relaxed">Dịch vụ thiết kế & thi công nội thất trọn gói từ SONDT — Từ bản vẽ phối cảnh 3D chân thực đến bàn giao chìa khóa trao tay với chất lượng hoàn thiện vượt trội.</p>
+            <div className="flex flex-wrap justify-center gap-4 mt-8">
+              <a href="#packages" className="group relative overflow-hidden text-white font-semibold py-3 px-6 text-xs uppercase tracking-widest transition-all duration-500" style={{background:'linear-gradient(135deg,#b8860b,#d4a843)'}}>
+                <span className="relative z-10">Xem bảng giá dịch vụ</span>
                 <div className="absolute inset-0 bg-white/20 translate-x-[-100%] group-hover:translate-x-0 transition-transform duration-500"/>
               </a>
-              <a href="tel:0326330991" className="border border-white/25 text-white/80 hover:text-white hover:border-white/60 font-semibold py-3.5 px-8 text-sm uppercase tracking-widest transition-all duration-300">Tư vấn miễn phí</a>
+              <a href="tel:0326330991" className="border border-gray-300 text-gray-700 hover:text-[#b8860b] hover:border-[#b8860b] font-semibold py-3 px-6 text-xs uppercase tracking-widest transition-all duration-300">Tư vấn miễn phí</a>
             </div>
           </div>
         </div>

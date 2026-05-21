@@ -74,24 +74,20 @@ export default function PromotionsPage() {
 
   return (
     <div className="flex flex-col bg-white">
-      {/* ===== HERO BANNER ===== */}
-      <section className="relative min-h-[420px] md:min-h-[500px] flex items-center overflow-hidden"
-        style={{ background: 'linear-gradient(135deg, #1a1a1a 0%, #3b1a0a 40%, #1a1a1a 100%)' }}>
-        <div className="absolute inset-0 opacity-[0.04]"
+      {/* ===== COUNTDOWN PROMO BAR ===== */}
+      <section className="relative py-8 text-center overflow-hidden border-b border-gray-100"
+        style={{ background: 'linear-gradient(135deg, #1a1a1a 0%, #2d2118 50%, #1a1a1a 100%)' }}>
+        <div className="absolute inset-0 opacity-[0.02]"
           style={{ backgroundImage: 'radial-gradient(circle at 1px 1px, rgba(255,255,255,0.3) 1px, transparent 0)', backgroundSize: '40px 40px' }} />
-        <div className="absolute top-10 right-10 w-80 h-80 rounded-full bg-red-600/10 blur-[120px]" />
-        <div className="absolute bottom-0 left-0 w-96 h-96 rounded-full bg-amber-700/8 blur-[100px]" />
-        <div className="container mx-auto px-6 relative z-10 text-center py-16">
-          <div className="inline-flex items-center gap-2 bg-red-600/20 border border-red-500/30 rounded-full px-5 py-1.5 mb-6">
-            <span className="w-2 h-2 bg-red-500 rounded-full animate-pulse" />
-            <span className="text-red-400 text-xs font-bold uppercase tracking-widest">Đang diễn ra</span>
+        <div className="container mx-auto px-6 relative z-10 flex flex-col md:flex-row items-center justify-center gap-6">
+          <div className="text-center md:text-left">
+            <div className="inline-flex items-center gap-2 bg-red-600/20 border border-red-500/30 rounded-full px-3 py-1 mb-2">
+              <span className="w-1.5 h-1.5 bg-red-500 rounded-full animate-pulse" />
+              <span className="text-red-400 text-[10px] font-bold uppercase tracking-widest">Đang diễn ra</span>
+            </div>
+            <h2 className="text-lg font-bold text-white">Săn Deal Hấp Dẫn - Giảm Đến 50%</h2>
+            <p className="text-xs text-gray-400 mt-0.5">Số lượng sản phẩm khuyến mãi có hạn. Hãy nhanh tay chọn mua!</p>
           </div>
-          <h1 className="text-4xl md:text-5xl lg:text-6xl font-extrabold text-white mb-4 leading-tight">
-            Ưu Đãi <span style={{ color: '#d4a843' }}>Đặc Biệt</span>
-          </h1>
-          <p className="text-gray-400 text-base md:text-lg max-w-xl mx-auto mb-10 leading-relaxed">
-            Săn deal hấp dẫn — Giảm đến 50% cho hàng ngàn sản phẩm nội thất cao cấp. Số lượng có hạn!
-          </p>
           <CountdownTimer />
         </div>
       </section>

@@ -60,6 +60,22 @@ export default function Header() {
 
   return (
     <header className="fixed top-0 left-0 right-0 bg-white shadow-md z-50">
+      {/* Promotional Top Banner Image */}
+      <div 
+        className="h-10 w-full relative flex items-center justify-center overflow-hidden bg-cover bg-center"
+        style={{ backgroundImage: "url('https://images.unsplash.com/photo-1616486338812-3dadae4b4ace?auto=format&fit=crop&w=1920&q=40')" }}
+      >
+        <div className="absolute inset-0 bg-black/60 backdrop-blur-[1px]"></div>
+        <div className="relative z-10 flex items-center gap-4 text-[10px] md:text-xs font-bold text-white uppercase tracking-[0.15em] text-center px-4">
+          <span className="flex items-center justify-center gap-1">
+            <span className="animate-pulse inline-block w-2 h-2 bg-red-500 rounded-full mr-1"></span>
+            🔥 ƯU ĐÃI LỚN NHẤT NĂM: GIẢM GIÁ ĐẾN 30% CHO TẤT CẢ SẢN PHẨM
+          </span>
+          <span className="mx-2 text-white/30 max-md:hidden">|</span>
+          <span className="max-md:hidden">MIỄN PHÍ VẬN CHUYỂN TOÀN QUỐC CHO ĐƠN HÀNG TỪ 5TRđ</span>
+        </div>
+      </div>
+
       {/* Top bar with contact info */}
       <div className="bg-gray-50 border-b border-gray-200">
         <div className="max-w-7xl mx-auto px-4 py-2 flex justify-between items-center text-xs text-gray-600">

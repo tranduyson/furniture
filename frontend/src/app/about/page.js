@@ -28,17 +28,15 @@ const team = [
 export default function AboutPage() {
   return (
     <div className="flex flex-col bg-white">
-      {/* HERO */}
-      <section className="relative py-20 md:py-28 overflow-hidden" style={{background:'linear-gradient(135deg,#1a1a1a 0%,#2d2118 40%,#1a1a1a 100%)'}}>
-        <div className="absolute top-20 right-20 w-72 h-72 rounded-full bg-amber-700/10 blur-[100px]"/>
-        <div className="absolute bottom-10 left-10 w-96 h-96 rounded-full bg-amber-900/8 blur-[120px]"/>
-        <div className="container mx-auto px-6 relative z-10">
+      {/* Intro Block */}
+      <section className="py-12 md:py-16 bg-white border-b border-gray-100">
+        <div className="container mx-auto px-6">
           <div className="max-w-3xl mx-auto text-center">
-            <div className="flex items-center justify-center gap-3 mb-6">
-              <div className="w-8 h-[1px] bg-[#d4a843]"/><span className="text-[#d4a843] text-xs font-semibold uppercase tracking-[0.25em]">Since 2020</span><div className="w-8 h-[1px] bg-[#d4a843]"/>
+            <div className="flex items-center justify-center gap-3 mb-4">
+              <div className="w-8 h-[1px] bg-[#b8860b]"/><span className="text-[#b8860b] text-xs font-bold uppercase tracking-[0.25em] font-sans">SINCE 2020</span><div className="w-8 h-[1px] bg-[#b8860b]"/>
             </div>
-            <h1 className="text-4xl md:text-5xl lg:text-6xl font-extrabold text-white mb-6 leading-tight">Kiến Tạo Không Gian<br/><span style={{color:'#d4a843'}}>Đẳng Cấp</span></h1>
-            <p className="text-gray-400 text-base md:text-lg max-w-xl mx-auto leading-relaxed">SONDT Furniture — Nơi nghệ thuật gặp cuộc sống. Chúng tôi tin rằng mỗi ngôi nhà xứng đáng được kiến tạo bởi những sản phẩm tốt nhất.</p>
+            <h2 className="text-3xl md:text-4xl font-extrabold text-gray-900 mb-4 font-serif leading-tight">Kiến Tạo Không Gian Đẳng Cấp</h2>
+            <p className="text-gray-500 text-base md:text-lg max-w-2xl mx-auto leading-relaxed">SONDT Furniture — Nơi nghệ thuật gặp gỡ cuộc sống đời thường. Chúng tôi tin rằng mỗi ngôi nhà đều xứng đáng được chăm chút và kiến tạo bởi những sản phẩm nội thất tinh xảo nhất.</p>
           </div>
         </div>
       </section>

@@ -1,4 +1,4 @@
-import { Geist, Geist_Mono } from "next/font/google";
+import { Geist, Geist_Mono, Lora } from "next/font/google";
 import "./globals.css";
 import Header from "../components/layout/Header";
 import Footer from "../components/layout/Footer";
@@ -13,6 +13,13 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
+const lora = Lora({
+  variable: "--font-lora",
+  subsets: ["latin", "vietnamese"],
+  weight: ["400", "500", "600", "700"],
+  style: ["normal", "italic"],
+});
+
 export const metadata = {
   title: "SONDT Furniture - Nội thất hiện đại cao cấp",
   description: "Khám phá bộ sưu tập nội thất đẳng cấp, hiện đại từ SONDT. Giao hàng toàn quốc, bảo hành lâu dài.",
@@ -22,11 +29,13 @@ export default function RootLayout({ children }) {
   return (
     <html
       lang="vi"
-      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
+      className={`${geistSans.variable} ${geistMono.variable} ${lora.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col bg-white">
         <Header />
-        <main className="flex-grow pt-[160px]">{children}</main>
+        <main className="flex-grow pt-[200px]">
+          {children}
+        </main>
         <Footer />
       </body>
     </html>

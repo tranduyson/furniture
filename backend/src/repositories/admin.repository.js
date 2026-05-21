@@ -107,6 +107,22 @@ const getProductAdminById = async (id) => {
   );
   if (!rows[0]) return null;
   const [variants] = await pool.execute(`SELECT * FROM product_variants WHERE product_id = ?`, [id]);
+  
+  // Lấy thuộc tính cho từng variant
+  for (const variant of variants) {
+    const [attrs] = await pool.execute(
+      `SELECT va.attr_value_id, av.value, av.color_hex, av.display_order,
+              at.id as type_id, at.name as type_name
+       FROM variant_attributes va
+       JOIN attribute_values av ON va.attr_value_id = av.id
+       JOIN attribute_types at ON av.type_id = at.id
+       WHERE va.variant_id = ?
+       ORDER BY at.id, av.display_order`,
+      [variant.id]
+    );
+    variant.attribute_values = attrs;
+  }
+  
   const [images] = await pool.execute(`SELECT * FROM product_images WHERE product_id = ? ORDER BY is_primary DESC`, [id]);
   return { ...rows[0], variants, images };
 };

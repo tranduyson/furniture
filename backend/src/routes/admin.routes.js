@@ -24,6 +24,26 @@ router.post('/products', adminController.createProduct);
 router.put('/products/:id', adminController.updateProduct);
 router.delete('/products/:id', adminController.deleteProduct);
 
+// Attribute Types
+router.get('/attribute-types', adminController.getAttributeTypes);
+router.post('/attribute-types', adminController.createAttributeType);
+router.delete('/attribute-types/:id', adminController.deleteAttributeType);
+
+// Attribute Values
+router.get('/attribute-values', adminController.getAttributeValues);
+router.post('/attribute-values', adminController.createAttributeValue);
+router.put('/attribute-values/:id', adminController.updateAttributeValue);
+router.delete('/attribute-values/:id', adminController.deleteAttributeValue);
+
+// Product Variants
+router.post('/products/:productId/variants', adminController.createVariant);
+router.put('/variants/:id', adminController.updateVariant);
+router.delete('/variants/:id', adminController.deleteVariant);
+
+// Variant Attributes (gán thuộc tính cho variant)
+router.get('/variants/:variantId/attributes', adminController.getVariantAttributes);
+router.put('/variants/:variantId/attributes', adminController.setVariantAttributes);
+
 // Orders
 router.get('/orders', adminController.getAllOrders);
 router.get('/orders/:id', adminController.getOrderById);
@@ -31,3 +51,4 @@ router.patch('/orders/:id/status', adminController.updateOrderStatus);
 router.delete('/orders/:id', adminController.deleteOrder);
 
 module.exports = router;
+

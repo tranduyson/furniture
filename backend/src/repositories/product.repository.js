@@ -63,16 +63,28 @@ const findBySlug = async (slug) => {
 };
 
 const findVariantsByProductId = async (productId) => {
-  const query = `
-    SELECT pv.*, GROUP_CONCAT(av.value SEPARATOR ', ') as attributes
-    FROM product_variants pv
-    LEFT JOIN variant_attributes va ON pv.id = va.variant_id
-    LEFT JOIN attribute_values av ON va.attr_value_id = av.id
-    WHERE pv.product_id = ? AND pv.is_active = 1
-    GROUP BY pv.id
-  `;
-  const [rows] = await pool.execute(query, [productId]);
-  return rows;
+  // Lấy danh sách variants
+  const [variants] = await pool.execute(
+    `SELECT pv.* FROM product_variants pv WHERE pv.product_id = ? AND pv.is_active = 1`,
+    [productId]
+  );
+
+  // Lấy thuộc tính chi tiết cho từng variant
+  for (const variant of variants) {
+    const [attrs] = await pool.execute(
+      `SELECT va.attr_value_id, av.value, av.color_hex, av.display_order,
+              at.id as type_id, at.name as type_name
+       FROM variant_attributes va
+       JOIN attribute_values av ON va.attr_value_id = av.id
+       JOIN attribute_types at ON av.type_id = at.id
+       WHERE va.variant_id = ?
+       ORDER BY at.id, av.display_order`,
+      [variant.id]
+    );
+    variant.attribute_values = attrs;
+  }
+
+  return variants;
 };
 
 const findImagesByProductId = async (productId) => {
@@ -95,6 +107,110 @@ const findAllCollections = async () => {
   return rows;
 };
 
+// ======================== ATTRIBUTE TYPES ========================
+const findAllAttributeTypes = async () => {
+  const [rows] = await pool.execute(`SELECT * FROM attribute_types ORDER BY id ASC`);
+  return rows;
+};
+
+const createAttributeType = async (name) => {
+  const [result] = await pool.execute(`INSERT INTO attribute_types (name) VALUES (?)`, [name]);
+  return result.insertId;
+};
+
+const deleteAttributeType = async (id) => {
+  const [result] = await pool.execute(`DELETE FROM attribute_types WHERE id = ?`, [id]);
+  return result.affectedRows;
+};
+
+// ======================== ATTRIBUTE VALUES ========================
+const findAttributeValuesByTypeId = async (typeId) => {
+  const [rows] = await pool.execute(
+    `SELECT * FROM attribute_values WHERE type_id = ? ORDER BY display_order ASC`,
+    [typeId]
+  );
+  return rows;
+};
+
+const findAllAttributeValues = async () => {
+  const [rows] = await pool.execute(
+    `SELECT av.*, at.name as type_name
+     FROM attribute_values av
+     JOIN attribute_types at ON av.type_id = at.id
+     ORDER BY at.id, av.display_order ASC`
+  );
+  return rows;
+};
+
+const createAttributeValue = async ({ type_id, value, color_hex, display_order }) => {
+  const [result] = await pool.execute(
+    `INSERT INTO attribute_values (type_id, value, color_hex, display_order) VALUES (?, ?, ?, ?)`,
+    [type_id, value, color_hex || null, display_order || 0]
+  );
+  return result.insertId;
+};
+
+const updateAttributeValue = async (id, { value, color_hex, display_order }) => {
+  const [result] = await pool.execute(
+    `UPDATE attribute_values SET value = ?, color_hex = ?, display_order = ? WHERE id = ?`,
+    [value, color_hex || null, display_order || 0, id]
+  );
+  return result.affectedRows;
+};
+
+const deleteAttributeValue = async (id) => {
+  const [result] = await pool.execute(`DELETE FROM attribute_values WHERE id = ?`, [id]);
+  return result.affectedRows;
+};
+
+// ======================== VARIANT ATTRIBUTES ========================
+const findVariantAttributes = async (variantId) => {
+  const [rows] = await pool.execute(
+    `SELECT va.*, av.value, av.color_hex, at.id as type_id, at.name as type_name
+     FROM variant_attributes va
+     JOIN attribute_values av ON va.attr_value_id = av.id
+     JOIN attribute_types at ON av.type_id = at.id
+     WHERE va.variant_id = ?`,
+    [variantId]
+  );
+  return rows;
+};
+
+const setVariantAttributes = async (variantId, attrValueIds) => {
+  // Xóa hết thuộc tính cũ
+  await pool.execute(`DELETE FROM variant_attributes WHERE variant_id = ?`, [variantId]);
+  // Thêm các thuộc tính mới
+  for (const attrValueId of attrValueIds) {
+    await pool.execute(
+      `INSERT INTO variant_attributes (variant_id, attr_value_id) VALUES (?, ?)`,
+      [variantId, attrValueId]
+    );
+  }
+};
+
+// ======================== VARIANT CRUD ========================
+const createVariant = async ({ product_id, sku, price_override, stock_qty, is_active }) => {
+  const [result] = await pool.execute(
+    `INSERT INTO product_variants (product_id, sku, price_override, stock_qty, is_active) VALUES (?, ?, ?, ?, ?)`,
+    [product_id, sku, price_override || null, stock_qty || 0, is_active ?? 1]
+  );
+  return result.insertId;
+};
+
+const updateVariant = async (id, { sku, price_override, stock_qty, is_active }) => {
+  const [result] = await pool.execute(
+    `UPDATE product_variants SET sku = ?, price_override = ?, stock_qty = ?, is_active = ? WHERE id = ?`,
+    [sku, price_override || null, stock_qty || 0, is_active ?? 1, id]
+  );
+  return result.affectedRows;
+};
+
+const deleteVariant = async (id) => {
+  await pool.execute(`DELETE FROM variant_attributes WHERE variant_id = ?`, [id]);
+  const [result] = await pool.execute(`DELETE FROM product_variants WHERE id = ?`, [id]);
+  return result.affectedRows;
+};
+
 module.exports = {
   findProducts,
   findBySlug,
@@ -102,5 +218,22 @@ module.exports = {
   findImagesByProductId,
   findSpecsByProductId,
   findAllCategories,
-  findAllCollections
+  findAllCollections,
+  // Attribute Types
+  findAllAttributeTypes,
+  createAttributeType,
+  deleteAttributeType,
+  // Attribute Values
+  findAttributeValuesByTypeId,
+  findAllAttributeValues,
+  createAttributeValue,
+  updateAttributeValue,
+  deleteAttributeValue,
+  // Variant Attributes
+  findVariantAttributes,
+  setVariantAttributes,
+  // Variant CRUD
+  createVariant,
+  updateVariant,
+  deleteVariant
 };

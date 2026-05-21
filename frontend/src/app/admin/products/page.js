@@ -248,6 +248,7 @@ export default function AdminProductsPage() {
                     <td className="px-6 py-4 text-center">
                       <div className="flex gap-2 justify-center">
                         <button onClick={() => openEdit(p.id)} className="text-blue-600 hover:underline text-xs font-bold">Sửa</button>
+                        <a href={`/admin/products/${p.id}`} className="text-purple-600 hover:underline text-xs font-bold">Cấu hình</a>
                         <button onClick={() => handleDelete(p.id)} className="text-red-500 hover:underline text-xs font-bold">Xóa</button>
                       </div>
                     </td>

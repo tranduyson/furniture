@@ -9,13 +9,14 @@ export default function ProductDetail({ params }) {
   const [loading, setLoading] = useState(true);
   const [quantity, setQuantity] = useState(1);
   const [activeTab, setActiveTab] = useState('desc');
-  const [selectedColor, setSelectedColor] = useState(0);
+  const [selectedAttrs, setSelectedAttrs] = useState({});
   const [selectedVariant, setSelectedVariant] = useState(null);
   const [mainImage, setMainImage] = useState(null);
   const [addingToCart, setAddingToCart] = useState(false);
   const [toast, setToast] = useState(null);
   const [showCartPreview, setShowCartPreview] = useState(false);
   const [relatedProducts, setRelatedProducts] = useState([]);
+  const [attrGroups, setAttrGroups] = useState({});
   const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
 
   useEffect(() => {
@@ -26,9 +27,29 @@ export default function ProductDetail({ params }) {
         if (data.success) {
           setProduct(data.data);
           setMainImage(data.data.primary_image);
+          // Trích xuất nhóm thuộc tính từ variants
+          const groups = {};
+          const initAttrs = {};
+          if (data.data.variants) {
+            data.data.variants.forEach(v => {
+              (v.attribute_values || []).forEach(attr => {
+                if (!groups[attr.type_name]) groups[attr.type_name] = { type_id: attr.type_id, values: [] };
+                if (!groups[attr.type_name].values.find(x => x.attr_value_id === attr.attr_value_id)) {
+                  groups[attr.type_name].values.push(attr);
+                }
+              });
+            });
+          }
+          setAttrGroups(groups);
           // Chọn variant đầu tiên mặc định
           if (data.data.variants && data.data.variants.length > 0) {
             setSelectedVariant(data.data.variants[0]);
+            // Set initial selected attrs from first variant
+            const first = data.data.variants[0];
+            (first.attribute_values || []).forEach(attr => {
+              initAttrs[attr.type_name] = attr.attr_value_id;
+            });
+            setSelectedAttrs(initAttrs);
           }
           
           // Fetch related products (Lấy từ tất cả sản phẩm để đảm bảo luôn có data do DB demo ít sản phẩm)
@@ -196,24 +217,23 @@ export default function ProductDetail({ params }) {
 
             {/* Thumbnail Gallery */}
             <div className="grid grid-cols-4 gap-3">
-              <button 
-                onClick={() => setMainImage(product?.primary_image)}
-                className={`aspect-square rounded-lg overflow-hidden border-2 transition ${selectedColor === 0 ? 'border-blue-600' : 'border-gray-200'}`}
-              >
-                <img src={product?.primary_image} alt="Main" className="w-full h-full object-cover" />
-              </button>
-              
-              {/* Color variants */}
-              {['#E8D5C4', '#4A7C5F', '#8B7355', '#D3D3D3'].map((color, i) => (
+              {product?.images && product.images.length > 0 ? (
+                product.images.map((img, i) => (
+                  <button key={img.id || i}
+                    onClick={() => setMainImage(img.image_url)}
+                    className={`aspect-square rounded-lg overflow-hidden border-2 transition ${mainImage === img.image_url ? 'border-blue-600' : 'border-gray-200 hover:border-gray-300'}`}
+                  >
+                    <img src={img.image_url} alt={img.alt_text || product?.name} className="w-full h-full object-cover" />
+                  </button>
+                ))
+              ) : (
                 <button
-                  key={i}
-                  onClick={() => setSelectedColor(i + 1)}
-                  className={`aspect-square rounded-lg overflow-hidden border-2 transition flex items-center justify-center ${selectedColor === i + 1 ? 'border-blue-600' : 'border-gray-200 hover:border-gray-300'}`}
-                  style={{ backgroundColor: color }}
+                  onClick={() => setMainImage(product?.primary_image)}
+                  className="aspect-square rounded-lg overflow-hidden border-2 border-blue-600"
                 >
-                  <span className="text-white font-bold text-xs opacity-70">Mẫu {i + 1}</span>
+                  <img src={product?.primary_image} alt="Main" className="w-full h-full object-cover" />
                 </button>
-              ))}
+              )}
             </div>
           </div>
 
@@ -228,7 +248,7 @@ export default function ProductDetail({ params }) {
                   SKU: <span className="text-gray-700">{product?.sku_base}</span>
                 </span>
                 <span className="text-gray-300">•</span>
-                <span className="text-gray-600">Chỉ còn: <span className="text-blue-600 font-bold">2 chiếc</span> trong kho</span>
+                <span className="text-gray-600">Tồn kho: <span className="text-blue-600 font-bold">{selectedVariant?.stock_qty ?? '—'} chiếc</span></span>
               </div>
             </div>
 
@@ -255,44 +275,72 @@ export default function ProductDetail({ params }) {
               </div>
             </div>
 
-            {/* Color Selection */}
-            <div className="mb-8 pb-8 border-b border-gray-100">
-              <label className="text-lg font-bold text-gray-900 mb-4 block">Màu Sắc</label>
-              <div className="flex gap-3 flex-wrap">
-                {[
-                  { name: 'Bê', color: '#E8D5C4' },
-                  { name: 'Xanh Sẫm', color: '#4A7C5F' },
-                  { name: 'Nâu', color: '#8B7355' },
-                  { name: 'Ghi', color: '#D3D3D3' }
-                ].map((c, i) => (
-                  <button
-                    key={i}
-                    onClick={() => setSelectedColor(i)}
-                    className={`flex items-center gap-2 px-5 py-3 rounded-xl border-2 font-semibold transition ${selectedColor === i ? 'border-blue-600 bg-blue-50 text-blue-700' : 'border-gray-200 text-gray-700 hover:border-gray-300'}`}
-                  >
-                    <div className="w-5 h-5 rounded-full border-2 border-gray-300" style={{ backgroundColor: c.color }}></div>
-                    {c.name}
-                  </button>
+            {/* Dynamic Attribute Selection */}
+            {Object.keys(attrGroups).length > 0 && (
+              <div className="mb-8 pb-8 border-b border-gray-100 space-y-6">
+                {Object.entries(attrGroups).map(([typeName, group]) => (
+                  <div key={typeName}>
+                    <label className="text-lg font-bold text-gray-900 mb-4 block">{typeName}</label>
+                    <div className="flex gap-3 flex-wrap">
+                      {group.values.map(attr => {
+                        const isSelected = selectedAttrs[typeName] === attr.attr_value_id;
+                        return (
+                          <button
+                            key={attr.attr_value_id}
+                            onClick={() => {
+                              const newAttrs = { ...selectedAttrs, [typeName]: attr.attr_value_id };
+                              setSelectedAttrs(newAttrs);
+                              // Tìm variant phù hợp với tổ hợp thuộc tính đã chọn
+                              if (product?.variants) {
+                                const match = product.variants.find(v => {
+                                  const vAttrs = v.attribute_values || [];
+                                  return Object.entries(newAttrs).every(([tn, avId]) =>
+                                    vAttrs.some(a => a.type_name === tn && a.attr_value_id === avId)
+                                  );
+                                });
+                                if (match) setSelectedVariant(match);
+                              }
+                            }}
+                            className={`flex items-center gap-2 px-5 py-3 rounded-xl border-2 font-semibold transition ${isSelected ? 'border-blue-600 bg-blue-50 text-blue-700' : 'border-gray-200 text-gray-700 hover:border-gray-300'}`}
+                          >
+                            {attr.color_hex && (
+                              <div className="w-5 h-5 rounded-full border-2 border-gray-300" style={{ backgroundColor: attr.color_hex }}></div>
+                            )}
+                            {attr.value}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
                 ))}
               </div>
-            </div>
+            )}
 
-            {/* Product Attributes */}
-            <div className="mb-10 pb-10 border-b border-gray-100 space-y-6">
-              <div>
-                <p className="text-xs font-bold text-gray-500 uppercase mb-2 tracking-wider">Kích thước</p>
-                <p className="text-lg font-bold text-gray-900">W179 x D79 x H73 cm</p>
-                <p className="text-xs text-gray-500 mt-1">(Kích thước lót dài: W160 cm)</p>
+            {/* Variant Info */}
+            {selectedVariant && (
+              <div className="mb-10 pb-10 border-b border-gray-100 space-y-3">
+                <div className="flex items-center gap-4 text-sm">
+                  <span className="text-gray-500">SKU biến thể:</span>
+                  <span className="font-bold text-gray-900">{selectedVariant.sku}</span>
+                </div>
+                <div className="flex items-center gap-4 text-sm">
+                  <span className="text-gray-500">Tồn kho:</span>
+                  <span className={`font-bold ${selectedVariant.stock_qty > 0 ? 'text-green-600' : 'text-red-600'}`}>
+                    {selectedVariant.stock_qty > 0 ? `Còn ${selectedVariant.stock_qty} sản phẩm` : 'Hết hàng'}
+                  </span>
+                </div>
+                {selectedVariant.attribute_values && selectedVariant.attribute_values.length > 0 && (
+                  <div className="flex flex-wrap gap-2 mt-2">
+                    {selectedVariant.attribute_values.map(attr => (
+                      <span key={attr.attr_value_id} className="inline-flex items-center gap-1.5 bg-blue-50 border border-blue-200 rounded-lg px-3 py-1 text-xs font-semibold text-blue-700">
+                        {attr.color_hex && <span className="w-3 h-3 rounded-full border" style={{ backgroundColor: attr.color_hex }}></span>}
+                        <span className="text-blue-500">{attr.type_name}:</span> {attr.value}
+                      </span>
+                    ))}
+                  </div>
+                )}
               </div>
-              <div>
-                <p className="text-xs font-bold text-gray-500 uppercase mb-2 tracking-wider">Chất liệu</p>
-                <ul className="space-y-2 text-gray-700">
-                  <li className="flex gap-3"><span className="text-blue-600">•</span> Vải: 100% polyester, chuyên dụng</li>
-                  <li className="flex gap-3"><span className="text-blue-600">•</span> Chân gỗ cao su chất lượng</li>
-                  <li className="flex gap-3"><span className="text-blue-600">•</span> Khung gỗ tự nhiên</li>
-                </ul>
-              </div>
-            </div>
+            )}
 
             {/* Quantity & Buttons */}
             <div className="space-y-4 mb-10">
@@ -425,9 +473,16 @@ export default function ProductDetail({ params }) {
                     {[
                       { label: 'Mã Sản Phẩm', value: product?.sku_base },
                       { label: 'Danh Mục', value: product?.category_name },
-                      { label: 'Kích Thước', value: 'W179 x D79 x H73 cm' },
-                      { label: 'Chất Liệu', value: '100% Polyester + Khung gỗ tự nhiên' },
-                      { label: 'Màu Sắc', value: 'Bê, Xanh Sẫm, Nâu, Ghi' },
+                      // Dynamic: thêm từng thuộc tính type từ attrGroups
+                      ...Object.entries(attrGroups).map(([typeName, group]) => ({
+                        label: typeName,
+                        value: group.values.map(v => v.value).join(', ')
+                      })),
+                      // Dynamic: specs từ DB
+                      ...(product?.specs || []).map(s => ({
+                        label: s.spec_key,
+                        value: s.spec_value
+                      })),
                       { label: 'Bảo Hành', value: `${product?.warranty_months || 5} tháng` },
                       { label: 'Vận Chuyển', value: product?.free_shipping ? 'Miễn phí' : 'Có phí' },
                       { label: 'Lắp Đặt', value: product?.free_install ? 'Miễn phí' : 'Có phí' },

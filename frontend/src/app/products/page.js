@@ -11,6 +11,11 @@ function ProductsContent() {
   const [selectedCategory, setSelectedCategory] = useState(null);
   const [pagination, setPagination] = useState({ page: 1, limit: 12, total: 0 });
   const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
+  const imgUrl = (path) => {
+    if (!path) return null;
+    if (path.startsWith('http') || path.startsWith('data:')) return path;
+    return `${apiUrl}${path.startsWith('/') ? '' : '/'}${path}`;
+  };
   const searchParams = useSearchParams();
   const searchKeyword = searchParams.get('search') || '';
 
@@ -142,7 +147,7 @@ function ProductsContent() {
                     <div className="relative w-full h-64 bg-gray-50 flex items-center justify-center overflow-hidden">
                       {product.primary_image ? (
                         <img 
-                          src={product.primary_image} 
+                          src={imgUrl(product.primary_image)} 
                           alt={product.name}
                           className="w-full h-full object-cover object-center group-hover:scale-110 transition duration-500"
                         />

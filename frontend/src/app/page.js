@@ -4,6 +4,12 @@ import Link from "next/link";
 
 const fmt = (n) => new Intl.NumberFormat('vi-VN').format(n || 0);
 const stars = (r) => '★'.repeat(Math.floor(r)) + (r % 1 >= 0.5 ? '½' : '') + '☆'.repeat(5 - Math.ceil(r));
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
+const imgUrl = (path) => {
+  if (!path) return null;
+  if (path.startsWith('http') || path.startsWith('data:')) return path;
+  return `${API_URL}${path.startsWith('/') ? '' : '/'}${path}`;
+};
 
 // Reusable Product Card (MOHO style)
 function ProductCard({ product, badge }) {
@@ -12,7 +18,7 @@ function ProductCard({ product, badge }) {
     <Link href={`/products/${product.slug}`} className="group bg-white rounded-lg overflow-hidden border border-gray-100 hover:shadow-lg transition-all duration-300 flex flex-col h-full">
       <div className="relative aspect-square bg-gray-50 overflow-hidden">
         {product.primary_image ? (
-          <img src={product.primary_image} alt={product.name} className="w-full h-full object-cover group-hover:scale-105 transition duration-500" />
+          <img src={imgUrl(product.primary_image)} alt={product.name} className="w-full h-full object-cover group-hover:scale-105 transition duration-500" />
         ) : (
           <div className="w-full h-full flex items-center justify-center bg-gray-100">
             <svg className="h-12 w-12 text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
@@ -560,7 +566,7 @@ export default function Home() {
             {reviews.map((r, i) => (
               <div key={i} className="bg-gray-50 rounded-xl overflow-hidden border border-gray-100 hover:shadow-md transition group">
                 <div className="aspect-[4/3] overflow-hidden bg-gray-100">
-                  <img src={r.img} alt={r.name} className="w-full h-full object-cover group-hover:scale-105 transition duration-500" />
+                  <img src={imgUrl(r.img)} alt={r.name} className="w-full h-full object-cover group-hover:scale-105 transition duration-500" />
                 </div>
                 <div className="p-4">
                   <h4 className="font-bold text-gray-800 text-sm mb-1">{r.name}</h4>

@@ -1,11 +1,16 @@
 'use client';
 
 import AdminLayout from '../../../components/admin/AdminLayout';
-import Image from 'next/image';
+
 import { useEffect, useState, useCallback, useMemo } from 'react';
 
 const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
 const fmt = (n) => new Intl.NumberFormat('vi-VN').format(n || 0);
+const imgUrl = (path) => {
+  if (!path) return null;
+  if (path.startsWith('http')) return path;
+  return `${API}${path.startsWith('/') ? '' : '/'}${path}`;
+};
 
 const emptyForm = { name: '', slug: '', description: '', base_price: '', discount_pct: 0, category_id: '', is_featured: 0, is_active: 1 };
 
@@ -41,14 +46,14 @@ export default function AdminProductsPage() {
     try {
       const params = new URLSearchParams({ page, limit, search });
       const accessToken = localStorage.getItem('accessToken');
-      const res = await fetch(`${API}/api/admin/products?${params}`, { 
-        headers: { Authorization: `Bearer ${accessToken}` } 
+      const res = await fetch(`${API}/api/admin/products?${params}`, {
+        headers: { Authorization: `Bearer ${accessToken}` }
       });
       const d = await res.json();
       console.log('Fetch products response:', d);
-      if (d.success && d.data) { 
-        setProducts(Array.isArray(d.data) ? d.data : []); 
-        setTotal(d.total || 0); 
+      if (d.success && d.data) {
+        setProducts(Array.isArray(d.data) ? d.data : []);
+        setTotal(d.total || 0);
       }
     } catch (e) {
       console.error('Error fetching products:', e);
@@ -76,25 +81,26 @@ export default function AdminProductsPage() {
     loadCategories();
   }, [fetchCategories]);
 
-  const handleSearch = (e) => { 
-    e.preventDefault(); 
+  const handleSearch = (e) => {
+    e.preventDefault();
     setPage(1);
   };
 
   const openCreate = () => { setForm(emptyForm); setModal('create'); setUploadedImage(null); setImagePreview(null); };
-  
+
   const openEdit = async (id) => {
     try {
       const accessToken = localStorage.getItem('accessToken');
-      const res = await fetch(`${API}/api/admin/products/${id}`, { 
-        headers: { Authorization: `Bearer ${accessToken}` } 
+      const res = await fetch(`${API}/api/admin/products/${id}`, {
+        headers: { Authorization: `Bearer ${accessToken}` }
       });
       const d = await res.json();
-      if (d.success) { 
-        setForm({ ...d.data }); 
-        setModal('edit'); 
-        setUploadedImage(null); 
-        setImagePreview(d.data.primary_image); 
+      if (d.success) {
+        setForm({ ...d.data });
+        setModal('edit');
+        setUploadedImage(null);
+        const existingImg = d.data.primary_image || d.data.images?.[0]?.image_url || null;
+        setImagePreview(imgUrl(existingImg));
       }
     } catch (e) {
       console.error('Error editing product:', e);
@@ -108,7 +114,7 @@ export default function AdminProductsPage() {
       const url = isEdit ? `${API}/api/admin/products/${form.id}` : `${API}/api/admin/products`;
       const method = isEdit ? 'PUT' : 'POST';
       const accessToken = localStorage.getItem('accessToken');
-      
+
       // If image uploaded, use FormData
       if (uploadedImage) {
         const formData = new FormData();
@@ -116,7 +122,7 @@ export default function AdminProductsPage() {
           formData.append(key, form[key] ?? '');
         });
         formData.append('primary_image', uploadedImage);
-        
+
         const res = await fetch(url, {
           method,
           headers: { Authorization: `Bearer ${accessToken}` },
@@ -134,7 +140,7 @@ export default function AdminProductsPage() {
         const d = await res.json();
         console.log('Save response:', d);
       }
-      
+
       setModal(null);
       setUploadedImage(null);
       setImagePreview(null);
@@ -162,9 +168,9 @@ export default function AdminProductsPage() {
     if (!confirm('Bạn có chắc muốn xóa sản phẩm này?')) return;
     try {
       const accessToken = localStorage.getItem('accessToken');
-      const res = await fetch(`${API}/api/admin/products/${id}`, { 
-        method: 'DELETE', 
-        headers: { Authorization: `Bearer ${accessToken}` } 
+      const res = await fetch(`${API}/api/admin/products/${id}`, {
+        method: 'DELETE',
+        headers: { Authorization: `Bearer ${accessToken}` }
       });
       const d = await res.json();
       console.log('Delete response:', d);
@@ -223,7 +229,7 @@ export default function AdminProductsPage() {
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-3">
                         {p.primary_image ? (
-                          <Image src={p.primary_image} alt={p.name} width={40} height={40} className="rounded-lg object-cover" />
+                          <img src={imgUrl(p.primary_image)} alt={p.name} className="w-10 h-10 rounded-lg object-cover" />
                         ) : (
                           <div className="w-10 h-10 rounded-lg bg-gray-100 flex items-center justify-center text-gray-300">🪑</div>
                         )}

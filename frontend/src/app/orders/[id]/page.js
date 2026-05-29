@@ -13,6 +13,11 @@ export default function OrderDetailPage({ params }) {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const router = useRouter();
   const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
+  const imgUrl = (path) => {
+    if (!path) return null;
+    if (path.startsWith('http') || path.startsWith('data:')) return path;
+    return `${apiUrl}${path.startsWith('/') ? '' : '/'}${path}`;
+  };
 
   useEffect(() => {
     const token = localStorage.getItem('accessToken');
@@ -150,7 +155,7 @@ export default function OrderDetailPage({ params }) {
                 <div key={idx} className="p-6 flex gap-6">
                   <div className="w-24 h-24 bg-gray-100 rounded-lg overflow-hidden flex-shrink-0">
                     {item.primary_image ? (
-                      <img src={item.primary_image} alt={item.product_name} className="w-full h-full object-cover" />
+                      <img src={imgUrl(item.primary_image)} alt={item.product_name} className="w-full h-full object-cover" />
                     ) : (
                       <div className="w-full h-full flex items-center justify-center text-gray-300">
                         <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">

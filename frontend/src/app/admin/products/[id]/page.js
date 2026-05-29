@@ -7,6 +7,11 @@ import Link from 'next/link';
 
 const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
 const fmt = (n) => new Intl.NumberFormat('vi-VN').format(n || 0);
+const imgUrl = (path) => {
+  if (!path) return null;
+  if (path.startsWith('http') || path.startsWith('data:')) return path;
+  return `${API}${path.startsWith('/') ? '' : '/'}${path}`;
+};
 const headers = () => ({
   'Content-Type': 'application/json',
   Authorization: `Bearer ${localStorage.getItem('accessToken')}`
@@ -23,7 +28,21 @@ export default function AdminProductDetailPage({ params }) {
 
   // Variant form
   const [variantModal, setVariantModal] = useState(null);
-  const [variantForm, setVariantForm] = useState({ sku: '', price_override: '', stock_qty: 0, is_active: 1, attribute_value_ids: [] });
+  const [variantForm, setVariantForm] = useState({ sku: '', price_override: '', stock_qty: 0, is_active: 1, image_url: '', attribute_value_ids: [] });
+  const [variantImageFile, setVariantImageFile] = useState(null);
+  const [variantImagePreview, setVariantImagePreview] = useState(null);
+
+  const [productImageFiles, setProductImageFiles] = useState([]);
+  const [productImagePreviews, setProductImagePreviews] = useState([]);
+  const [productImageUrl, setProductImageUrl] = useState('');
+  const [productImagePrimary, setProductImagePrimary] = useState(false);
+  const [uploadingImages, setUploadingImages] = useState(false);
+
+  useEffect(() => {
+    return () => {
+      productImagePreviews.forEach(url => URL.revokeObjectURL(url));
+    };
+  }, [productImagePreviews]);
 
   // Attribute value form
   const [avModal, setAvModal] = useState(false);
@@ -62,7 +81,14 @@ export default function AdminProductDetailPage({ params }) {
     } catch (e) { console.error(e); }
   }, []);
 
-  useEffect(() => { fetchProduct(); fetchAttrTypes(); fetchAttrValues(); }, [fetchProduct, fetchAttrTypes, fetchAttrValues]);
+  useEffect(() => {
+    const loadInitialData = async () => {
+      await fetchProduct();
+      await fetchAttrTypes();
+      await fetchAttrValues();
+    };
+    loadInitialData();
+  }, [fetchProduct, fetchAttrTypes, fetchAttrValues]);
 
   // ---- Attribute Type CRUD ----
   const handleCreateType = async () => {
@@ -100,7 +126,9 @@ export default function AdminProductDetailPage({ params }) {
 
   // ---- Variant CRUD ----
   const openCreateVariant = () => {
-    setVariantForm({ sku: '', price_override: '', stock_qty: 0, is_active: 1, attribute_value_ids: [] });
+    setVariantForm({ sku: '', price_override: '', stock_qty: 0, is_active: 1, image_url: '', attribute_value_ids: [] });
+    setVariantImageFile(null);
+    setVariantImagePreview(null);
     setVariantModal('create');
   };
 
@@ -111,22 +139,147 @@ export default function AdminProductDetailPage({ params }) {
       price_override: v.price_override || '',
       stock_qty: v.stock_qty,
       is_active: v.is_active,
+      image_url: v.image_url || '',
       attribute_value_ids: (v.attribute_values || []).map(a => a.attr_value_id)
     });
+    setVariantImageFile(null);
+    setVariantImagePreview(imgUrl(v.image_url) || '');
     setVariantModal('edit');
+  };
+
+  const handleVariantImageChange = (e) => {
+    const file = e.target.files?.[0] || null;
+    setVariantImageFile(file);
+    if (!file) {
+      setVariantImagePreview(variantForm.image_url || null);
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      setVariantImagePreview(event.target.result);
+    };
+    reader.readAsDataURL(file);
   };
 
   const handleSaveVariant = async () => {
     const payload = { ...variantForm, price_override: variantForm.price_override || null, stock_qty: parseInt(variantForm.stock_qty) || 0 };
-    if (variantModal === 'create') {
-      await fetch(`${API}/api/admin/products/${id}/variants`, { method: 'POST', headers: headers(), body: JSON.stringify(payload) });
-      showToast('Đã thêm biến thể');
-    } else {
-      await fetch(`${API}/api/admin/variants/${variantForm.id}`, { method: 'PUT', headers: headers(), body: JSON.stringify(payload) });
-      showToast('Đã cập nhật biến thể');
+    const isCreate = variantModal === 'create';
+    const url = isCreate ? `${API}/api/admin/products/${id}/variants` : `${API}/api/admin/variants/${variantForm.id}`;
+    const method = isCreate ? 'POST' : 'PUT';
+    const accessToken = localStorage.getItem('accessToken');
+
+    try {
+      if (variantImageFile) {
+        const formData = new FormData();
+        formData.append('variant_image', variantImageFile);
+        Object.entries(payload).forEach(([key, value]) => {
+          if (key === 'attribute_value_ids') {
+            (value || []).forEach(item => formData.append('attribute_value_ids[]', item));
+          } else {
+            formData.append(key, value ?? '');
+          }
+        });
+        const res = await fetch(url, {
+          method,
+          headers: { Authorization: `Bearer ${accessToken}` },
+          body: formData
+        });
+        await res.json();
+      } else {
+        const res = await fetch(url, {
+          method,
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${accessToken}` },
+          body: JSON.stringify(payload)
+        });
+        await res.json();
+      }
+      showToast(isCreate ? 'Đã thêm biến thể' : 'Đã cập nhật biến thể');
+      setVariantModal(null);
+      setVariantImageFile(null);
+      setVariantImagePreview(null);
+      fetchProduct();
+    } catch (error) {
+      console.error('Lỗi khi lưu biến thể:', error);
+      showToast('Lỗi khi lưu biến thể', 'error');
     }
-    setVariantModal(null);
-    fetchProduct();
+  };
+
+  const handleProductImageFilesChange = (e) => {
+    const files = Array.from(e.target.files || []);
+    setProductImageFiles(files);
+    setProductImagePreviews(files.map(file => URL.createObjectURL(file)));
+  };
+
+  const handleUploadProductImages = async () => {
+    if (!productImageFiles.length && !productImageUrl.trim()) return;
+    setUploadingImages(true);
+    try {
+      const accessToken = localStorage.getItem('accessToken');
+      const formData = new FormData();
+      productImageFiles.forEach(file => formData.append('product_images', file));
+      if (productImageUrl.trim()) formData.append('image_url', productImageUrl.trim());
+      if (productImagePrimary) formData.append('is_primary', '1');
+
+      const res = await fetch(`${API}/api/admin/products/${id}/images`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${accessToken}` },
+        body: formData
+      });
+      const d = await res.json();
+      if (d.success) {
+        showToast('Đã lưu ảnh sản phẩm');
+        setProductImageFiles([]);
+        setProductImagePreviews([]);
+        setProductImageUrl('');
+        setProductImagePrimary(false);
+        fetchProduct();
+      } else {
+        console.error('Lỗi upload ảnh sản phẩm:', d);
+        showToast('Lỗi upload ảnh sản phẩm', 'error');
+      }
+    } catch (error) {
+      console.error('Lỗi upload ảnh sản phẩm:', error);
+      showToast('Lỗi upload ảnh sản phẩm', 'error');
+    }
+    setUploadingImages(false);
+  };
+
+  const handleSetPrimaryProductImage = async (imageId) => {
+    try {
+      const accessToken = localStorage.getItem('accessToken');
+      const res = await fetch(`${API}/api/admin/products/images/${imageId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${accessToken}` },
+        body: JSON.stringify({ is_primary: 1 })
+      });
+      const d = await res.json();
+      if (d.success) {
+        showToast('Đã đặt ảnh này làm ảnh chính');
+        fetchProduct();
+      }
+    } catch (error) {
+      console.error('Lỗi đặt ảnh chính:', error);
+      showToast('Lỗi đặt ảnh chính', 'error');
+    }
+  };
+
+  const handleDeleteProductImage = async (imageId) => {
+    if (!confirm('Xóa ảnh này?')) return;
+    try {
+      const accessToken = localStorage.getItem('accessToken');
+      const res = await fetch(`${API}/api/admin/products/images/${imageId}`, {
+        method: 'DELETE',
+        headers: { Authorization: `Bearer ${accessToken}` }
+      });
+      const d = await res.json();
+      if (d.success) {
+        showToast('Đã xóa ảnh sản phẩm');
+        fetchProduct();
+      }
+    } catch (error) {
+      console.error('Lỗi xóa ảnh sản phẩm:', error);
+      showToast('Lỗi xóa ảnh sản phẩm', 'error');
+    }
   };
 
   const handleDeleteVariant = async (vId) => {
@@ -165,6 +318,79 @@ export default function AdminProductDetailPage({ params }) {
             <Link href="/admin/products" className="text-sm text-amber-600 hover:underline mb-2 inline-block">← Quay lại danh sách</Link>
             <h1 className="text-2xl font-black text-gray-900">{product.name}</h1>
             <p className="text-sm text-gray-500 mt-1">ID: {product.id} • SKU: {product.sku_base}</p>
+          </div>
+        </div>
+
+        {/* ===== SECTION: Quản lý ảnh sản phẩm ===== */}
+        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+          <div className="px-6 py-4 border-b border-gray-100 bg-gradient-to-r from-sky-50 to-cyan-50">
+            <h2 className="font-bold text-gray-900 flex items-center gap-2">
+              <span className="w-8 h-8 bg-sky-600 text-white rounded-lg flex items-center justify-center text-sm">🖼️</span>
+              Quản lý ảnh sản phẩm
+            </h2>
+            <p className="text-xs text-gray-500 mt-1">Thêm nhiều ảnh cho sản phẩm, chọn 1 ảnh chính và quản lý thư viện ảnh tại đây.</p>
+          </div>
+          <div className="p-6 space-y-6">
+            <div className="grid lg:grid-cols-[1.4fr_0.9fr] gap-6">
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-xs font-bold text-gray-500 mb-1 uppercase">Chọn ảnh sản phẩm</label>
+                  <input type="file" accept="image/*" multiple onChange={handleProductImageFilesChange}
+                    className="w-full text-sm text-gray-700 file:border-0 file:bg-sky-600 file:text-white file:px-4 file:py-2 file:rounded-xl file:font-semibold" />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-gray-500 mb-1 uppercase">Hoặc nhập đường dẫn ảnh</label>
+                  <input type="text" value={productImageUrl} onChange={e => setProductImageUrl(e.target.value)} placeholder="VD: /uploads/products/anh-san-pham.jpg"
+                    className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:ring-2 focus:ring-sky-400 outline-none" />
+                </div>
+                <label className="flex items-center gap-2 text-sm cursor-pointer">
+                  <input type="checkbox" checked={productImagePrimary} onChange={e => setProductImagePrimary(e.target.checked)} className="w-4 h-4 accent-sky-500" />
+                  Đặt ảnh này làm ảnh chính
+                </label>
+                <button onClick={handleUploadProductImages} disabled={uploadingImages}
+                  className="w-full bg-sky-600 text-white font-bold py-3 rounded-xl hover:bg-sky-700 transition disabled:opacity-50">
+                  {uploadingImages ? 'Đang lưu...' : 'Lưu ảnh'}
+                </button>
+                {productImagePreviews.length > 0 && (
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                    {productImagePreviews.map((src, index) => (
+                      <div key={index} className="aspect-square rounded-2xl overflow-hidden border border-gray-200">
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img src={src} alt={`Preview ${index + 1}`} className="w-full h-full object-cover" />
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+              <div className="bg-sky-50 border border-sky-100 rounded-3xl p-5">
+                <p className="text-sm font-bold text-sky-700 mb-3">Ảnh hiện có</p>
+                <p className="text-xs text-gray-500 mb-4">Ảnh chính sẽ dùng làm thumbnail chính và trang chi tiết sản phẩm.</p>
+                <p className="text-sm text-gray-700">Số ảnh hiện có: <strong>{product.images?.length || 0}</strong></p>
+                {product.images?.length > 0 && (
+                  <div className="mt-4 space-y-3">
+                    {product.images.map(img => (
+                      <div key={img.id} className="flex items-center gap-3 p-3 rounded-2xl border border-sky-100 bg-white">
+                        <div className="w-16 h-16 rounded-2xl overflow-hidden bg-gray-100">
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
+                          <img src={imgUrl(img.image_url)} alt={`Image ${img.id}`} className="w-full h-full object-cover" />
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <p className="text-sm font-semibold text-gray-800 truncate">{img.image_url.split('/').pop()}</p>
+                          <p className="text-xs text-gray-500">{img.is_primary ? 'Ảnh chính' : 'Ảnh phụ'}</p>
+                        </div>
+                        <div className="flex flex-col gap-2 text-right">
+                          {!img.is_primary && (
+                            <button onClick={() => handleSetPrimaryProductImage(img.id)}
+                              className="text-sky-600 text-xs font-bold hover:text-sky-800">Đặt làm chính</button>
+                          )}
+                          <button onClick={() => handleDeleteProductImage(img.id)} className="text-red-500 text-xs font-bold hover:text-red-700">Xóa</button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
           </div>
         </div>
 
@@ -241,7 +467,7 @@ export default function AdminProductDetailPage({ params }) {
             {(!product.variants || product.variants.length === 0) ? (
               <div className="px-6 py-12 text-center text-gray-400">
                 <p className="text-lg mb-2">Chưa có biến thể nào</p>
-                <p className="text-sm">Nhấn "Thêm biến thể" để tạo biến thể đầu tiên</p>
+                <p className="text-sm">Nhấn “Thêm biến thể” để tạo biến thể đầu tiên</p>
               </div>
             ) : product.variants.map(v => (
               <div key={v.id} className="px-6 py-5 hover:bg-gray-50/50 transition">
@@ -257,6 +483,12 @@ export default function AdminProductDetailPage({ params }) {
                       <span>Giá: <strong className="text-gray-900">{v.price_override ? `${fmt(v.price_override)}₫` : 'Theo sản phẩm gốc'}</strong></span>
                       <span>Tồn kho: <strong className="text-gray-900">{v.stock_qty}</strong></span>
                     </div>
+                    {v.image_url ? (
+                      <div className="mb-3 inline-flex items-center gap-2 text-xs text-gray-500">
+                        <span className="font-semibold">Ảnh variant:</span>
+                        <span className="text-blue-600 break-all">{v.image_url}</span>
+                      </div>
+                    ) : null}
                     {/* Thuộc tính của variant */}
                     {v.attribute_values && v.attribute_values.length > 0 ? (
                       <div className="flex flex-wrap gap-2">
@@ -352,6 +584,23 @@ export default function AdminProductDetailPage({ params }) {
                   <input type="number" value={variantForm.stock_qty} onChange={e => setVariantForm({ ...variantForm, stock_qty: parseInt(e.target.value) || 0 })}
                     className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:ring-2 focus:ring-amber-400 outline-none" />
                 </div>
+              </div>
+              <div>
+                <label className="block text-xs font-bold text-gray-500 mb-1 uppercase">Ảnh biến thể</label>
+                <input type="file" accept="image/*" onChange={handleVariantImageChange}
+                  className="w-full text-sm text-gray-700 file:border-0 file:bg-amber-500 file:text-white file:px-4 file:py-2 file:rounded-xl file:font-semibold" />
+                <p className="text-xs text-gray-400 mt-2">Chọn ảnh để lưu vào thư mục uploads/variants và tự lưu đường dẫn. Nếu muốn nhập URL thủ công, giữ trường bên dưới.</p>
+                <input type="text" value={variantForm.image_url} onChange={e => setVariantForm({ ...variantForm, image_url: e.target.value })} placeholder="VD: /uploads/variants/variant-image.jpg"
+                  className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:ring-2 focus:ring-amber-400 outline-none mt-3" />
+                {(variantImagePreview || variantForm.image_url) && (
+                  <div className="mt-3">
+                    <p className="text-xs text-gray-500 mb-2">Xem trước ảnh biến thể</p>
+                    <div className="w-32 h-32 rounded-2xl overflow-hidden border border-gray-200">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img src={variantImagePreview || imgUrl(variantForm.image_url)} alt="Preview" className="w-full h-full object-cover" />
+                    </div>
+                  </div>
+                )}
               </div>
               <label className="flex items-center gap-2 text-sm cursor-pointer">
                 <input type="checkbox" checked={!!variantForm.is_active} onChange={e => setVariantForm({ ...variantForm, is_active: e.target.checked ? 1 : 0 })} className="w-4 h-4 accent-amber-500" />

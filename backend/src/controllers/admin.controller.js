@@ -1,4 +1,5 @@
 const adminService = require('../services/admin.service');
+const adminRepository = require('../repositories/admin.repository');
 const productRepository = require('../repositories/product.repository');
 
 // Dashboard
@@ -56,18 +57,89 @@ const getProductById = async (req, res, next) => {
     res.json({ success: true, data });
   } catch (e) { next(e); }
 };
+
+const normalizeProductPayload = (req) => {
+  const payload = { ...req.body };
+  if (req.file) {
+    payload.primary_image = `/uploads/products/${req.file.filename}`;
+  }
+  return payload;
+};
+
+const normalizeProductImagePayload = (req) => {
+  const payload = { ...req.body };
+  payload.is_primary = payload.is_primary === '1' || payload.is_primary === 'true' || payload.is_primary === true ? 1 : 0;
+  if (req.files && req.files.length > 0) {
+    payload.image_urls = req.files.map(file => `/uploads/products/${file.filename}`);
+  }
+  if (payload.image_url && typeof payload.image_url === 'string') {
+    payload.image_url = payload.image_url.trim();
+  }
+  return payload;
+};
+
 const createProduct = async (req, res, next) => {
   try {
-    const data = await adminService.createProduct(req.body);
+    const payload = normalizeProductPayload(req);
+    const data = await adminService.createProduct(payload);
+    if (payload.primary_image) {
+      await adminRepository.setPrimaryProductImage(data.id, payload.primary_image);
+    }
     res.status(201).json({ success: true, data });
   } catch (e) { next(e); }
 };
 const updateProduct = async (req, res, next) => {
   try {
-    const data = await adminService.updateProduct(req.params.id, req.body);
+    const payload = normalizeProductPayload(req);
+    const data = await adminService.updateProduct(req.params.id, payload);
+    if (payload.primary_image) {
+      await adminRepository.setPrimaryProductImage(req.params.id, payload.primary_image);
+    }
     res.json({ success: true, data });
   } catch (e) { next(e); }
 };
+
+const uploadProductImages = async (req, res, next) => {
+  try {
+    const { productId } = req.params;
+    const payload = normalizeProductImagePayload(req);
+    const urls = payload.image_urls || (payload.image_url ? [payload.image_url] : []);
+    if (!urls.length) {
+      throw new Error('Không có ảnh để lưu');
+    }
+
+    const created = [];
+    for (let i = 0; i < urls.length; i += 1) {
+      const imageUrl = urls[i];
+      const isPrimary = payload.is_primary && i === 0 ? 1 : 0;
+      const id = await adminRepository.createProductImage(productId, imageUrl, isPrimary);
+      if (isPrimary) {
+        await adminRepository.setPrimaryProductImageById(id);
+      }
+      created.push({ id, image_url: imageUrl, is_primary: isPrimary });
+    }
+    res.status(201).json({ success: true, data: created });
+  } catch (e) { next(e); }
+};
+
+const updateProductImage = async (req, res, next) => {
+  try {
+    const { is_primary, alt_text } = req.body;
+    const payload = {};
+    if (typeof alt_text !== 'undefined') payload.alt_text = alt_text;
+    if (typeof is_primary !== 'undefined') payload.is_primary = is_primary;
+    const data = await adminRepository.updateProductImage(req.params.id, payload);
+    res.json({ success: true, data });
+  } catch (e) { next(e); }
+};
+
+const deleteProductImage = async (req, res, next) => {
+  try {
+    const data = await adminRepository.deleteProductImage(req.params.id);
+    res.json({ success: true, data });
+  } catch (e) { next(e); }
+};
+
 const deleteProduct = async (req, res, next) => {
   try {
     const data = await adminService.deleteProduct(req.params.id);
@@ -134,13 +206,35 @@ const deleteAttributeValue = async (req, res, next) => {
 };
 
 // ======================== VARIANTS ========================
+const normalizeVariantPayload = (req) => {
+  const payload = { ...req.body };
+
+  if (req.file) {
+    payload.image_url = `/uploads/variants/${req.file.filename}`;
+  }
+
+  if (typeof payload.attribute_value_ids === 'string') {
+    try {
+      payload.attribute_value_ids = JSON.parse(payload.attribute_value_ids);
+    } catch {
+      payload.attribute_value_ids = payload.attribute_value_ids ? payload.attribute_value_ids.split(',').map(v => v.trim()).filter(Boolean) : [];
+    }
+  }
+
+  if (payload.attribute_value_ids && !Array.isArray(payload.attribute_value_ids)) {
+    payload.attribute_value_ids = [payload.attribute_value_ids];
+  }
+
+  return payload;
+};
+
 const createVariant = async (req, res, next) => {
   try {
     const { productId } = req.params;
-    const id = await productRepository.createVariant({ ...req.body, product_id: productId });
-    // Nếu có attribute_value_ids, gán luôn
-    if (req.body.attribute_value_ids && req.body.attribute_value_ids.length > 0) {
-      await productRepository.setVariantAttributes(id, req.body.attribute_value_ids);
+    const payload = normalizeVariantPayload(req);
+    const id = await productRepository.createVariant({ ...payload, product_id: productId });
+    if (payload.attribute_value_ids && payload.attribute_value_ids.length > 0) {
+      await productRepository.setVariantAttributes(id, payload.attribute_value_ids);
     }
     res.status(201).json({ success: true, data: { id } });
   } catch (e) { next(e); }
@@ -148,10 +242,10 @@ const createVariant = async (req, res, next) => {
 
 const updateVariant = async (req, res, next) => {
   try {
-    await productRepository.updateVariant(req.params.id, req.body);
-    // Nếu có attribute_value_ids, cập nhật lại
-    if (req.body.attribute_value_ids) {
-      await productRepository.setVariantAttributes(req.params.id, req.body.attribute_value_ids);
+    const payload = normalizeVariantPayload(req);
+    await productRepository.updateVariant(req.params.id, payload);
+    if (payload.attribute_value_ids) {
+      await productRepository.setVariantAttributes(req.params.id, payload.attribute_value_ids);
     }
     res.json({ success: true });
   } catch (e) { next(e); }
@@ -212,6 +306,7 @@ module.exports = {
   getDashboardStats,
   getAllUsers, getUserById, updateUser, deleteUser, resetUserPassword,
   getAllProducts, getProductById, createProduct, updateProduct, deleteProduct,
+  uploadProductImages, updateProductImage, deleteProductImage,
   // Attribute Types
   getAttributeTypes, createAttributeType, deleteAttributeType,
   // Attribute Values

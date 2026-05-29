@@ -18,6 +18,11 @@ export default function ProductDetail({ params }) {
   const [relatedProducts, setRelatedProducts] = useState([]);
   const [attrGroups, setAttrGroups] = useState({});
   const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
+  const imgUrl = (path) => {
+    if (!path) return null;
+    if (path.startsWith('http') || path.startsWith('data:')) return path;
+    return `${apiUrl}${path.startsWith('/') ? '' : '/'}${path}`;
+  };
 
   useEffect(() => {
     const fetchProduct = async () => {
@@ -26,7 +31,7 @@ export default function ProductDetail({ params }) {
         const data = await res.json();
         if (data.success) {
           setProduct(data.data);
-          setMainImage(data.data.primary_image);
+          setMainImage(imgUrl(data.data.primary_image));
           // Trích xuất nhóm thuộc tính từ variants
           const groups = {};
           const initAttrs = {};
@@ -43,9 +48,10 @@ export default function ProductDetail({ params }) {
           setAttrGroups(groups);
           // Chọn variant đầu tiên mặc định
           if (data.data.variants && data.data.variants.length > 0) {
-            setSelectedVariant(data.data.variants[0]);
-            // Set initial selected attrs from first variant
             const first = data.data.variants[0];
+            setSelectedVariant(first);
+            setMainImage(imgUrl(first.image_url) || imgUrl(data.data.primary_image));
+            // Set initial selected attrs from first variant
             (first.attribute_values || []).forEach(attr => {
               initAttrs[attr.type_name] = attr.attr_value_id;
             });
@@ -220,18 +226,18 @@ export default function ProductDetail({ params }) {
               {product?.images && product.images.length > 0 ? (
                 product.images.map((img, i) => (
                   <button key={img.id || i}
-                    onClick={() => setMainImage(img.image_url)}
-                    className={`aspect-square rounded-lg overflow-hidden border-2 transition ${mainImage === img.image_url ? 'border-blue-600' : 'border-gray-200 hover:border-gray-300'}`}
+                    onClick={() => setMainImage(imgUrl(img.image_url))}
+                    className={`aspect-square rounded-lg overflow-hidden border-2 transition ${mainImage === imgUrl(img.image_url) ? 'border-blue-600' : 'border-gray-200 hover:border-gray-300'}`}
                   >
-                    <img src={img.image_url} alt={img.alt_text || product?.name} className="w-full h-full object-cover" />
+                    <img src={imgUrl(img.image_url)} alt={img.alt_text || product?.name} className="w-full h-full object-cover" />
                   </button>
                 ))
               ) : (
                 <button
-                  onClick={() => setMainImage(product?.primary_image)}
+                  onClick={() => setMainImage(imgUrl(product?.primary_image))}
                   className="aspect-square rounded-lg overflow-hidden border-2 border-blue-600"
                 >
-                  <img src={product?.primary_image} alt="Main" className="w-full h-full object-cover" />
+                  <img src={imgUrl(product?.primary_image)} alt="Main" className="w-full h-full object-cover" />
                 </button>
               )}
             </div>
@@ -298,7 +304,10 @@ export default function ProductDetail({ params }) {
                                     vAttrs.some(a => a.type_name === tn && a.attr_value_id === avId)
                                   );
                                 });
-                                if (match) setSelectedVariant(match);
+                                if (match) {
+                                  setSelectedVariant(match);
+                                  setMainImage(imgUrl(match.image_url) || imgUrl(product?.primary_image) || mainImage);
+                                }
                               }
                             }}
                             className={`flex items-center gap-2 px-5 py-3 rounded-xl border-2 font-semibold transition ${isSelected ? 'border-blue-600 bg-blue-50 text-blue-700' : 'border-gray-200 text-gray-700 hover:border-gray-300'}`}
@@ -527,7 +536,7 @@ export default function ProductDetail({ params }) {
                 <div className="bg-white rounded-xl border border-gray-100 overflow-hidden hover:shadow-xl transition-all duration-300 h-full flex flex-col relative">
                   <div className="relative w-full aspect-[4/3] bg-gray-50 flex items-center justify-center overflow-hidden">
                     {p.primary_image ? (
-                      <img src={p.primary_image} alt={p.name} className="w-full h-full object-cover object-center group-hover:scale-110 transition duration-500" />
+                      <img src={imgUrl(p.primary_image)} alt={p.name} className="w-full h-full object-cover object-center group-hover:scale-110 transition duration-500" />
                     ) : (
                       <div className="flex flex-col items-center opacity-20">
                         <svg className="h-10 w-10 mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
@@ -609,7 +618,7 @@ export default function ProductDetail({ params }) {
             <div className="p-6 border-b border-gray-100">
               <div className="flex gap-4">
                 <div className="w-20 h-20 bg-gray-100 rounded-lg overflow-hidden flex-shrink-0">
-                  <img src={product?.primary_image} alt={product?.name} className="w-full h-full object-cover" />
+                  <img src={imgUrl(product?.primary_image)} alt={product?.name} className="w-full h-full object-cover" />
                 </div>
                 <div className="flex-1">
                   <p className="font-bold text-gray-900 line-clamp-2">{product?.name}</p>

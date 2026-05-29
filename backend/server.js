@@ -1,6 +1,8 @@
 require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
+const path = require('path');
+const fs = require('fs');
 const errorHandler = require('./src/middlewares/errorHandler.middleware');
 
 let swaggerUi, swaggerSpec;
@@ -16,9 +18,16 @@ const app = express();
 const PORT = process.env.PORT || 5000;
 
 // Middleware
+const uploadsPath = path.join(__dirname, 'uploads');
+const variantsUploadPath = path.join(uploadsPath, 'variants');
+const productsUploadPath = path.join(uploadsPath, 'products');
+fs.mkdirSync(variantsUploadPath, { recursive: true });
+fs.mkdirSync(productsUploadPath, { recursive: true });
+
 app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+app.use('/uploads', express.static(uploadsPath));
 
 // Routes
 const authRoutes = require('./src/routes/auth.routes');

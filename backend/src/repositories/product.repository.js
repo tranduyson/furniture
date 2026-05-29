@@ -189,18 +189,18 @@ const setVariantAttributes = async (variantId, attrValueIds) => {
 };
 
 // ======================== VARIANT CRUD ========================
-const createVariant = async ({ product_id, sku, price_override, stock_qty, is_active }) => {
+const createVariant = async ({ product_id, sku, price_override, stock_qty, is_active, image_url }) => {
   const [result] = await pool.execute(
-    `INSERT INTO product_variants (product_id, sku, price_override, stock_qty, is_active) VALUES (?, ?, ?, ?, ?)`,
-    [product_id, sku, price_override || null, stock_qty || 0, is_active ?? 1]
+    `INSERT INTO product_variants (product_id, sku, price_override, stock_qty, is_active, image_url) VALUES (?, ?, ?, ?, ?, ?)`,
+    [product_id, sku, price_override || null, stock_qty || 0, is_active ?? 1, image_url || null]
   );
   return result.insertId;
 };
 
-const updateVariant = async (id, { sku, price_override, stock_qty, is_active }) => {
+const updateVariant = async (id, { sku, price_override, stock_qty, is_active, image_url }) => {
   const [result] = await pool.execute(
-    `UPDATE product_variants SET sku = ?, price_override = ?, stock_qty = ?, is_active = ? WHERE id = ?`,
-    [sku, price_override || null, stock_qty || 0, is_active ?? 1, id]
+    `UPDATE product_variants SET sku = ?, price_override = ?, stock_qty = ?, is_active = ?, image_url = ? WHERE id = ?`,
+    [sku, price_override || null, stock_qty || 0, is_active ?? 1, image_url || null, id]
   );
   return result.affectedRows;
 };

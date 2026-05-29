@@ -124,7 +124,68 @@ const getProductAdminById = async (id) => {
   }
   
   const [images] = await pool.execute(`SELECT * FROM product_images WHERE product_id = ? ORDER BY is_primary DESC`, [id]);
-  return { ...rows[0], variants, images };
+  const primary_image = images.length ? images[0].image_url : null;
+  return { ...rows[0], variants, images, primary_image };
+};
+
+const setPrimaryProductImage = async (productId, imageUrl) => {
+  await pool.execute(`UPDATE product_images SET is_primary = 0 WHERE product_id = ?`, [productId]);
+  const [existing] = await pool.execute(`SELECT id FROM product_images WHERE product_id = ? AND image_url = ?`, [productId, imageUrl]);
+  if (existing.length) {
+    await pool.execute(`UPDATE product_images SET is_primary = 1 WHERE id = ?`, [existing[0].id]);
+    return existing[0].id;
+  }
+  const [result] = await pool.execute(
+    `INSERT INTO product_images (product_id, image_url, is_primary) VALUES (?, ?, 1)`,
+    [productId, imageUrl]
+  );
+  return result.insertId;
+};
+
+const createProductImage = async (productId, imageUrl, is_primary = 0) => {
+  const [result] = await pool.execute(
+    `INSERT INTO product_images (product_id, image_url, is_primary) VALUES (?, ?, ?)`,
+    [productId, imageUrl, is_primary]
+  );
+  return result.insertId;
+};
+
+const setPrimaryProductImageById = async (imageId) => {
+  const [rows] = await pool.execute(`SELECT product_id FROM product_images WHERE id = ?`, [imageId]);
+  if (!rows[0]) return 0;
+  await pool.execute(`UPDATE product_images SET is_primary = 0 WHERE product_id = ?`, [rows[0].product_id]);
+  const [result] = await pool.execute(`UPDATE product_images SET is_primary = 1 WHERE id = ?`, [imageId]);
+  return result.affectedRows;
+};
+
+const updateProductImage = async (id, { alt_text, is_primary }) => {
+  if (typeof is_primary !== 'undefined' && (is_primary === 1 || is_primary === '1' || is_primary === true || is_primary === 'true')) {
+    await setPrimaryProductImageById(id);
+  }
+  const updates = [];
+  const params = [];
+  if (typeof alt_text !== 'undefined') {
+    updates.push('alt_text = ?');
+    params.push(alt_text || null);
+  }
+  if (!updates.length) return 0;
+  params.push(id);
+  const [result] = await pool.execute(`UPDATE product_images SET ${updates.join(', ')} WHERE id = ?`, params);
+  return result.affectedRows;
+};
+
+const deleteProductImage = async (id) => {
+  const [rows] = await pool.execute(`SELECT product_id, is_primary FROM product_images WHERE id = ?`, [id]);
+  if (!rows[0]) return 0;
+  const { product_id, is_primary } = rows[0];
+  const [result] = await pool.execute(`DELETE FROM product_images WHERE id = ?`, [id]);
+  if (result.affectedRows && is_primary) {
+    const [nextRows] = await pool.execute(`SELECT id FROM product_images WHERE product_id = ? ORDER BY id ASC LIMIT 1`, [product_id]);
+    if (nextRows[0]) {
+      await pool.execute(`UPDATE product_images SET is_primary = 1 WHERE id = ?`, [nextRows[0].id]);
+    }
+  }
+  return result.affectedRows;
 };
 
 const createProduct = async ({ name, slug, description, base_price, discount_pct, category_id, is_featured, is_active }) => {
@@ -253,6 +314,7 @@ const getDashboardStats = async () => {
 module.exports = {
   getAllUsers, getUserById, updateUser, deleteUser, updateUserPassword,
   getAllProductsAdmin, getProductAdminById, createProduct, updateProduct, deleteProduct,
+  setPrimaryProductImage, createProductImage, setPrimaryProductImageById, updateProductImage, deleteProductImage,
   getAllOrdersAdmin, getOrderAdminById, updateOrderStatus, deleteOrder,
   getDashboardStats
 };

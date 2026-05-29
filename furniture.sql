@@ -554,6 +554,7 @@ CREATE TABLE `product_variants` (
   `price_override` decimal(15,0) DEFAULT NULL,
   `stock_qty` int(11) NOT NULL DEFAULT 0,
   `is_active` tinyint(1) NOT NULL DEFAULT 1,
+  `image_url` text DEFAULT NULL,
   `created_at` datetime NOT NULL DEFAULT current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 

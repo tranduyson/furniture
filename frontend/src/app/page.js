@@ -188,12 +188,26 @@ export default function Home() {
   const bestSellers = products.slice(0, 8);
   const suggestedProducts = products.slice(0, 4);
 
-  const reviews = [
-    { name: 'yaluomai0011', rating: 5, text: 'Ngược dẫn có cần chuyên cần ghế thoáng kiểu bất cứ, ổn cược ngoài nốt.', img: '/uploads/products/pro_mau_tu_nhien_giuong_go_cao_su_vline_noi_that_moho_1_641eaf90df4045019e8c134068caa1c2_large.png' },
-    { name: 'Hồ Quang Nhật', rating: 5, text: 'Mẫu mua ghế thoáng có bàn, căn phòng cũng sẽ đẹp và thiết kế bền chặt.', img: '/uploads/products/pro_nem_foam_moho_signature_02aeec7858054cf3892c50c11138f1e6_grande.png' },
-    { name: 'Ẩn Danh', rating: 5, text: 'Mình đặt cho showroom rất đẹ, phù hợp thiết kế nghệ sĩ gọi nhàng dẫy xin prim.', img: '/uploads/products/pro_mau_tu_nhien_bo_ban_an_4_ghe_6_ghe_serena_noi_that_moho_ban_an_1m6_238807752ee145c19f3e3ccdb43977d6_grande.jpg' },
-    { name: 'HuyenLu', rating: 5, text: 'Bàn chuyển hát bán tại mỹ xinh nhà, mua SONTD thấy giống mô tả rất bền.', img: '/uploads/products/noi-that-moho-sofa-vline-ban-sofa-milan_8e1b7b077e39491785f02cc4b9665b23_large.jpg' },
+  const reviewNames = ['yaluomai0011', 'Hồ Quang Nhật', 'Ẩn Danh', 'HuyenLu'];
+  const reviewTexts = [
+    'Ngược dẫn có cần chuyên cần ghế thoáng kiểu bất cứ, ổn cược ngoài nốt.',
+    'Mẫu mua ghế thoáng có bàn, căn phòng cũng sẽ đẹp và thiết kế bền chặt.',
+    'Mình đặt cho showroom rất đẹp, phù hợp thiết kế nghệ sĩ gọi nhàng dẫy xin prim.',
+    'Bàn chuyển hát bán tại mỹ xinh nhà, mua SONTD thấy giống mô tả rất bền.',
   ];
+  // Dùng ảnh từ sản phẩm thực tế trong DB
+  const reviewProducts = products.slice(0, 4);
+  const reviews = reviewNames.map((name, i) => ({
+    name,
+    rating: 5,
+    text: reviewTexts[i],
+    img: reviewProducts[i]?.primary_image || null,
+    productName: reviewProducts[i]?.name || '',
+    categoryId: reviewProducts[i]?.category_id || null,
+    href: reviewProducts[i]?.category_id
+      ? `/products?category_id=${reviewProducts[i].category_id}`
+      : '/products',
+  }));
 
   return (
     <div className="flex flex-col bg-gray-50">
@@ -204,9 +218,8 @@ export default function Home() {
           {slides.map((slide, idx) => (
             <div
               key={slide.id}
-              className={`absolute inset-0 transition-opacity duration-1000 ease-in-out ${
-                idx === currentSlide ? "opacity-100 z-10" : "opacity-0 z-0"
-              }`}
+              className={`absolute inset-0 transition-opacity duration-1000 ease-in-out ${idx === currentSlide ? "opacity-100 z-10" : "opacity-0 z-0"
+                }`}
             >
               <div
                 className="absolute inset-0 bg-cover bg-center bg-no-repeat transition-transform duration-[8000ms] ease-out"
@@ -358,9 +371,8 @@ export default function Home() {
             <button
               key={idx}
               onClick={() => setCurrentSlide(idx)}
-              className={`w-2.5 h-2.5 rounded-full transition-all duration-300 ${
-                idx === currentSlide ? "bg-[#8B5E3C] w-6" : "bg-gray-300"
-              }`}
+              className={`w-2.5 h-2.5 rounded-full transition-all duration-300 ${idx === currentSlide ? "bg-[#8B5E3C] w-6" : "bg-gray-300"
+                }`}
             />
           ))}
         </div>
@@ -514,7 +526,7 @@ export default function Home() {
               </div>
               <div>
                 <h3 className="font-bold text-gray-800 text-lg mb-1">Liên Hệ Tư Vấn</h3>
-                <p className="text-2xl font-black text-blue-600">0971 141 140</p>
+                <p className="text-2xl font-black text-blue-600">0326330991</p>
                 <p className="text-xs text-gray-500 mt-1">Miễn phí tư vấn • Hỗ trợ 24/7</p>
               </div>
             </div>
@@ -564,16 +576,41 @@ export default function Home() {
           <SectionHeader title="Đánh giá thực tế" color="#e67e22" />
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             {reviews.map((r, i) => (
-              <div key={i} className="bg-gray-50 rounded-xl overflow-hidden border border-gray-100 hover:shadow-md transition group">
-                <div className="aspect-[4/3] overflow-hidden bg-gray-100">
-                  <img src={imgUrl(r.img)} alt={r.name} className="w-full h-full object-cover group-hover:scale-105 transition duration-500" />
+              <Link
+                key={i}
+                href={r.href || '/products'}
+                className="bg-gray-50 rounded-xl overflow-hidden border border-gray-100 hover:shadow-md hover:-translate-y-1 transition-all duration-300 group block"
+              >
+                <div className="aspect-[4/3] overflow-hidden bg-gray-100 relative">
+                  {r.img ? (
+                    <img
+                      src={imgUrl(r.img)}
+                      alt={r.productName || r.name}
+                      className="w-full h-full object-cover group-hover:scale-105 transition duration-500"
+                      onError={(e) => { e.target.style.display = 'none'; e.target.nextSibling.style.display = 'flex'; }}
+                    />
+                  ) : null}
+                  <div
+                    className="w-full h-full items-center justify-center bg-gradient-to-br from-orange-50 to-amber-50"
+                    style={{ display: r.img ? 'none' : 'flex' }}
+                  >
+                    <svg className="h-12 w-12 text-orange-200" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                    </svg>
+                  </div>
+                  {/* Overlay khi hover */}
+                  <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-all duration-300 flex items-center justify-center">
+                    <span className="opacity-0 group-hover:opacity-100 transition-all duration-300 bg-orange-500 text-white text-xs font-bold px-3 py-1.5 rounded-full shadow-lg">
+                      Xem sản phẩm →
+                    </span>
+                  </div>
                 </div>
                 <div className="p-4">
-                  <h4 className="font-bold text-gray-800 text-sm mb-1">{r.name}</h4>
+                  <h4 className="font-bold text-gray-800 text-sm mb-1 group-hover:text-orange-600 transition">{r.name}</h4>
                   <div className="text-orange-400 text-xs mb-2">★★★★★</div>
                   <p className="text-xs text-gray-500 line-clamp-2">{r.text}</p>
                 </div>
-              </div>
+              </Link>
             ))}
           </div>
         </div>
